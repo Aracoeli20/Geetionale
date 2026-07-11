@@ -147,6 +147,10 @@ main{flex:1;padding:16px 14px 92px;overflow-y:auto}
 .kpi,.panel{box-shadow:0 1px 3px rgba(32,48,80,.05)}
 .cal-nav button{transition:background .15s ease,transform .1s ease}
 .cal-nav button:active{transform:scale(.94)}
+/* --- cancellazioni --- */
+.bk.canc{border-left:3px solid var(--red);opacity:.72;background:#FCF7F6}
+.bk.canc .bk-name{text-decoration:line-through;color:var(--grey)}
+.bk.canc .bk-amt .a{text-decoration:line-through;color:var(--grey);font-weight:500}
 </style></head><body>
 <div id="app" style="display:none">
   <header class="hdr"><div class="hdr-row">
@@ -161,6 +165,7 @@ main{flex:1;padding:16px 14px 92px;overflow-y:auto}
       <div class="panel"><h3>Ricavi per stanza</h3><div id="dashRooms"></div></div>
       <div class="panel"><h3>Tipologia ospiti</h3><div id="dashSeg"></div></div>
       <div class="panel"><h3>Ricavi per mese</h3><div class="months" id="dashMonths"></div></div>
+      <div class="panel"><h3>🧹 Compenso pulizie per mese <span id="clnYearTot" style="font-weight:400;color:var(--grey);font-size:11px;text-transform:none;letter-spacing:0"></span></h3><div id="dashClean"></div></div>
       <div class="panel"><h3>Canali</h3><div id="dashChannels"></div></div>
       <div class="panel"><h3>Incassi per metodo <span style="font-weight:400;color:var(--grey);font-size:11px">· solo incassati</span></h3><div id="dashPay"></div></div>
       <div class="panel"><h3>Ricevute sui contanti <span style="font-weight:400;color:var(--grey);font-size:11px">· solo incassati</span></h3><div id="dashRec"></div></div>
@@ -253,6 +258,7 @@ main{flex:1;padding:16px 14px 92px;overflow-y:auto}
 <div class="modal" id="modal"><div class="sheet">
   <div class="sheet-hdr"><h2 id="formTitle">Nuovo inserimento</h2><button class="x" onclick="closeForm()">✕</button></div>
   <div class="form">
+    <div id="cancBanner" class="needsbox" style="display:none"><b>❌ Prenotazione cancellata dal cliente</b> — resta nello storico ma non conta in ricavi, ospiti e calendario.</div>
     <div class="seg" id="typeSeg"><button class="on" data-t="p" onclick="setType('p')">📖 Prenotazione</button><button data-t="block" onclick="setType('block')">🔒 Chiusura date</button></div>
     <div class="fg only-p"><label>Nome ospite</label><input id="f-name" type="text" placeholder="Es. Mario Rossi"></div>
     <div class="frow"><div class="fg"><label>Data arrivo</label><input id="f-date" type="date" oninput="updCheckout()"></div><div class="fg"><label>Notti</label><input id="f-nights" type="number" min="1" value="1" oninput="updCheckout()"></div></div>
@@ -276,7 +282,9 @@ main{flex:1;padding:16px 14px 92px;overflow-y:auto}
     <div class="fg"><label>Note</label><textarea id="f-notes" placeholder="Note, motivo chiusura…"></textarea></div>
     <div id="msgBtns" class="only-p" style="display:none"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:5px"><button type="button" class="btn wa" style="margin-top:0" onclick="sendMsg('welcome')">👋 Benvenuto</button><button type="button" class="btn wa" style="margin-top:0" onclick="sendMsg('checkout')">🧳 Check-out</button><button type="button" class="btn wa" style="margin-top:0" onclick="sendMsg('instr')">🔑 Istruzioni</button><button type="button" class="btn wa" style="margin-top:0;opacity:.8" onclick="waGuest()">💬 Chat</button></div></div>
     <button class="btn" onclick="saveForm()">Salva</button>
-    <button class="btn del" id="delBtn" onclick="deleteBooking()" style="display:none">Elimina</button>
+    <button class="btn" id="cancBtn" onclick="cancelBooking()" style="display:none;background:var(--red)">❌ Cancellata dal cliente</button>
+    <button class="btn ghost" id="restoreBtn" onclick="restoreBooking()" style="display:none">↩️ Ripristina prenotazione</button>
+    <button class="btn del" id="delBtn" onclick="deleteBooking()" style="display:none">🗑 Elimina (inserita per errore)</button>
   </div>
 </div></div>
 
@@ -347,7 +355,7 @@ const MONTHS=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov',
 const MONTHS_F=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
 const WD=['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
 let db,auth,currentUid=null,unsub=null;
-let state={bookings:[],expenses:[],year:String(new Date().getFullYear()),q:'',roomFilter:'',showPast:false,editId:null,fType:'p',fRooms:{},fSeg:'turista',fReceipt:'nessuna',fRegPol:'no',fChannel:'Diretto',fPay:'Contanti',eCat:'Bollette',expEditId:null,settings:{},selDay:null,cmpA:null,cmpB:null,cal:new Date(),view:'dash',cleaning:[],clnMonth:new Date(),clnEditId:null,clnAddExp:true};
+let state={bookings:[],expenses:[],year:String(new Date().getFullYear()),q:'',roomFilter:'',showPast:false,editId:null,fType:'p',fRooms:{},fSeg:'turista',fReceipt:'nessuna',fRegPol:'no',fChannel:'Diretto',fPay:'Contanti',eCat:'Bollette',expEditId:null,settings:{},selDay:null,cmpA:null,cmpB:null,cal:new Date(),view:'dash',cleaning:[],clnMonth:new Date(),clnEditId:null,clnAddExp:true,showCancelled:false};
 const eur=n=>'€ '+(Math.round(n||0)).toLocaleString('it-IT');
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const k1=n=>(n/1000).toFixed(1)+'k';
@@ -361,8 +369,8 @@ function roomNames(b){return(b.rooms||[]).map(r=>r.room)}
 function net(b){return total(b)-(+b.commission||0)-(+b.sumup||0)}
 function covers(b,iso){return b.date<=iso&&addDays(b.date,b.nights)>iso}
 function needsReg(b){return b.type!=='block'&&(b.regPol!=='si'||!b.regDMS)}
-function dormBedsOn(iso,exclId){let n=0;state.bookings.forEach(b=>{if(b.id===exclId)return;if(!roomNames(b).includes('Dormitorio'))return;if(!covers(b,iso))return;n+=(b.type==='block')?DORM_BEDS:(+b.guests||0)});return n}
-function dayOcc(iso){const o={priv:{},dorm:0,block:false};state.bookings.forEach(b=>{if(!covers(b,iso))return;roomNames(b).forEach(r=>{if(r==='Dormitorio'){o.dorm+=(b.type==='block')?DORM_BEDS:(+b.guests||0)}else{o.priv[r]=b.type==='block'?'block':true}});if(b.type==='block')o.block=true});return o}
+function dormBedsOn(iso,exclId){let n=0;state.bookings.forEach(b=>{if(b.id===exclId)return;if(b.cancelled)return;if(!roomNames(b).includes('Dormitorio'))return;if(!covers(b,iso))return;n+=(b.type==='block')?DORM_BEDS:(+b.guests||0)});return n}
+function dayOcc(iso){const o={priv:{},dorm:0,block:false};state.bookings.forEach(b=>{if(b.cancelled)return;if(!covers(b,iso))return;roomNames(b).forEach(r=>{if(r==='Dormitorio'){o.dorm+=(b.type==='block')?DORM_BEDS:(+b.guests||0)}else{o.priv[r]=b.type==='block'?'block':true}});if(b.type==='block')o.block=true});return o}
 
 function seedBookings(){return SEED.map((a,i)=>({id:'h'+i,type:'p',date:a[0],nights:a[1],name:a[2],rooms:a[3].map(x=>({room:x[0],amount:x[1]})),guests:(a[4]||0)+(a[5]||0),segment:a[5]>0?'pellegrino':'turista',channel:a[6],commission:a[7],sumup:a[8],acconto:a[9]||0,regPol:a[10],regDMS:!!a[11],receipt:a[14]||'nessuna',payment:(a[6]==='Booking'||a[6]==='Airbnb')?'Piattaforma':(a[8]>0?'Carta':'Contanti'),phone:'',needs:a[12],notes:a[13]||''}))}
 function seedExpenses(){return EXP_SEED.map(function(e){return {id:e.id,date:e.date,category:e.category,description:e.description,amount:e.amount}})}
@@ -373,7 +381,7 @@ async function persist(){if(currentUid){try{await docRef().set({bookings:JSON.st
 async function persistE(){if(currentUid){try{await docRef().set({expenses:JSON.stringify(state.expenses),updated:Date.now()},{merge:true})}catch(e){toast('Errore salvataggio')}}}
 async function persistS(){if(currentUid){try{await docRef().set({settings:JSON.stringify(state.settings),updated:Date.now()},{merge:true})}catch(e){toast('Errore salvataggio')}}}
 function buildYears(){const ys=new Set(state.bookings.map(b=>b.date.slice(0,4)));ys.add(String(new Date().getFullYear()));const arr=[...ys].sort().reverse();if(!arr.includes(state.year))state.year=arr[0];document.getElementById('yearSel').innerHTML=arr.map(y=>`<option value="${y}"${y===state.year?' selected':''}>${y}</option>`).join('')}
-function yb(){return state.bookings.filter(b=>b.date.slice(0,4)===state.year&&b.type!=='block')}
+function yb(){return state.bookings.filter(b=>b.date.slice(0,4)===state.year&&b.type!=='block'&&!b.cancelled)}
 function render(){renderDash();renderList();renderStorico();renderNow();renderCal();renderExp();renderCmp();renderClean();document.getElementById('yearSel').value=state.year}
 
 function renderDash(){
@@ -384,13 +392,15 @@ function renderDash(){
   const utile=tot-comm-sumup-exp;
   const guests=b.reduce((s,x)=>s+(+x.guests||0),0);
   const futI=b.filter(x=>x.date>today).reduce((s,x)=>s+total(x),0);
+  const cancN=state.bookings.filter(x=>x.type!=='block'&&x.cancelled&&(x.date||'').slice(0,4)===state.year).length;
   document.getElementById('dashKpis').innerHTML=`
     <div class="kpi wide"><div class="v">${eur(tot)}</div><div class="l">Fatturato lordo ${state.year}</div></div>
     <div class="kpi"><div class="v" style="color:var(--ocra)">${eur(futI)}</div><div class="l">Incassi futuri</div></div>
     <div class="kpi"><div class="v ${utile>=0?'green':'red'}">${eur(utile)}</div><div class="l">Utile ante imposte</div></div>
     <div class="kpi"><div class="v">${b.length}</div><div class="l">Prenotazioni</div></div>
     <div class="kpi"><div class="v">${guests}</div><div class="l">Ospiti totali</div></div>
-    <div class="kpi"><div class="v red">${eur(comm+sumup)}</div><div class="l">Commissioni+SumUp</div></div>`;
+    <div class="kpi"><div class="v red">${eur(comm+sumup)}</div><div class="l">Commissioni+SumUp</div></div>
+    <div class="kpi"><div class="v" style="color:var(--red)">${cancN}</div><div class="l">Cancellazioni</div></div>`;
   const byRoom=ROOMS.map(r=>({r,v:0}));
   b.forEach(x=>(x.rooms||[]).forEach(rm=>{const o=byRoom.find(z=>z.r===rm.room);if(o)o.v+=(+rm.amount||0)}));
   const maxR=Math.max(1,...byRoom.map(x=>x.v));
@@ -401,6 +411,12 @@ function renderDash(){
   const bm=Array(12).fill(0);b.forEach(x=>{const m=+x.date.slice(5,7)-1;if(m>=0&&m<12)bm[m]+=total(x)});
   const maxM=Math.max(1,...bm);
   document.getElementById('dashMonths').innerHTML=bm.map((v,i)=>`<div class="mcol"><div class="mbar" style="height:${v/maxM*100}%" title="${eur(v)}"></div><div class="mlab">${MONTHS[i]}</div></div>`).join('');
+  const cm=Array(12).fill(0);(state.cleaning||[]).forEach(function(e){if((e.date||'').slice(0,4)!==state.year)return;const mm=+e.date.slice(5,7)-1;if(mm>=0&&mm<12)cm[mm]+=clnCostOf(e)});
+  const clnTotY=cm.reduce(function(a,v){return a+v},0),maxCm=Math.max(1,...cm);
+  const cEl=document.getElementById('dashClean');
+  if(cEl){const rc=cm.map((v,i)=>({i,v})).filter(x=>x.v>0);
+    cEl.innerHTML=rc.length?rc.map(x=>`<div class="bar-row"><div class="bar-lab">${MONTHS_F[x.i]}</div><div class="bar-track"><div class="bar-fill" style="width:${x.v/maxCm*100}%;background:#4C8C7D"></div></div><div class="bar-val">${eur(x.v)}</div></div>`).join(''):`<div style="font-size:12.5px;color:var(--grey)">Nessun turno registrato nel ${state.year}.</div>`;
+    const ct=document.getElementById('clnYearTot');if(ct)ct.textContent=clnTotY>0?('\u00b7 totale '+eur2(clnTotY)):'';}
   const byCh=CHANNELS.map(c=>({c,v:b.filter(x=>x.channel===c).reduce((s,x)=>s+total(x),0)})).filter(x=>x.v>0);
   const maxC=Math.max(1,...byCh.map(x=>x.v));
   document.getElementById('dashChannels').innerHTML=byCh.map(x=>`<div class="bar-row"><div class="bar-lab">${x.c}</div><div class="bar-track"><div class="bar-fill" style="width:${x.v/maxC*100}%;background:var(--ocra)"></div></div><div class="bar-val">${eur(x.v)}</div></div>`).join('')||'<div style="font-size:13px;color:var(--grey)">Nessun dato</div>';
@@ -417,14 +433,17 @@ function bkCard(b,cls){
   const dt=new Date(b.date+'T00:00');const cod=new Date(addDays(b.date,b.nights)+'T00:00');
   if(b.type==='block') return `<div class="bk blk" onclick="openForm('${b.id}')"><div class="bk-date"><div class="d">${dt.getDate()}</div><div class="m">${MONTHS[dt.getMonth()]}</div></div><div class="bk-main"><div class="bk-name">🔒 Chiuso · ${esc(roomNames(b).join(' + '))}</div><div class="bk-meta"><span>${b.nights}n → ${cod.getDate()}/${cod.getMonth()+1}</span>${b.notes?`<span>${esc(b.notes)}</span>`:''}</div>${roomDots(b)}</div></div>`;
   const due=total(b)-(+b.acconto||0);const seg=SEGMAP[b.segment||'turista'];const future=addDays(b.date,b.nights)>=todayISO();
-  return `<div class="bk ${cls||''}" onclick="openForm('${b.id}')"><div class="bk-date"><div class="d">${dt.getDate()}</div><div class="m">${MONTHS[dt.getMonth()]}</div></div><div class="bk-main"><div class="bk-name">${esc(b.name)||'—'}</div><div class="bk-meta"><span class="tag room">${esc(roomNames(b).join(' + '))}</span><span class="tag seg">${seg.i} ${seg.l}</span>${b.needs?'<span class="tag needs">🍽️</span>':''}${b.regPol==='dim'?'<span class="tag warn" style="background:#F3D6D2;color:#A23B2E">⚠️ Polizia dimenticata</span>':(future&&needsReg(b)?'<span class="tag warn">⚠️ da registrare</span>':'')}${(b.payment==='Contanti'&&total(b)>0)?'<span class="tag cash">💶 contanti</span>':''}${(b.receipt&&b.receipt!=='nessuna')?`<span class="tag rec">${b.receipt==='cartacea'?'🧾':'📄'} ${b.receipt}</span>`:''}<span>${b.nights}n · ${b.guests}p</span><span>→ ${cod.getDate()}/${cod.getMonth()+1}</span></div>${roomDots(b)}</div><div class="bk-amt"><div class="a">${eur(total(b))}</div>${b.acconto>0?`<div class="due">saldo ${eur(due)}</div>`:''}${b.phone?`<button class="wachip" onclick="event.stopPropagation();waOpen('${(b.phone||'').replace(/[^0-9 +]/g,'')}')" title="WhatsApp">💬</button>`:''}</div></div>`;
+  const _cc=(cls||'')+(b.cancelled?' canc':'');
+  const _ct=b.cancelled?`<span class="tag needs">❌ Annullata${b.cancelledAt?' il '+fmtShort(b.cancelledAt):''}</span>`:'';
+  return `<div class="bk ${_cc}" onclick="openForm('${b.id}')"><div class="bk-date"><div class="d">${dt.getDate()}</div><div class="m">${MONTHS[dt.getMonth()]}</div></div><div class="bk-main"><div class="bk-name">${esc(b.name)||'—'}</div><div class="bk-meta">${_ct}<span class="tag room">${esc(roomNames(b).join(' + '))}</span><span class="tag seg">${seg.i} ${seg.l}</span>${b.needs?'<span class="tag needs">🍽️</span>':''}${b.regPol==='dim'?'<span class="tag warn" style="background:#F3D6D2;color:#A23B2E">⚠️ Polizia dimenticata</span>':(future&&needsReg(b)?'<span class="tag warn">⚠️ da registrare</span>':'')}${(b.payment==='Contanti'&&total(b)>0)?'<span class="tag cash">💶 contanti</span>':''}${(b.receipt&&b.receipt!=='nessuna')?`<span class="tag rec">${b.receipt==='cartacea'?'🧾':'📄'} ${b.receipt}</span>`:''}<span>${b.nights}n · ${b.guests}p</span><span>→ ${cod.getDate()}/${cod.getMonth()+1}</span></div>${roomDots(b)}</div><div class="bk-amt"><div class="a">${eur(total(b))}</div>${b.acconto>0?`<div class="due">saldo ${eur(due)}</div>`:''}${b.phone?`<button class="wachip" onclick="event.stopPropagation();waOpen('${(b.phone||'').replace(/[^0-9 +]/g,'')}')" title="WhatsApp">💬</button>`:''}</div></div>`;
 }
 function renderList(){
-  document.getElementById('roomFilters').innerHTML=`<span class="fp${state.roomFilter===''?' on':''}" onclick="state.roomFilter='';renderList()">Tutte</span>`+ROOMS.map(r=>`<span class="fp${state.roomFilter===r?' on':''}" onclick="state.roomFilter='${r}';renderList()">${r}</span>`).join('')+`<span class="fp${state.roomFilter==='block'?' on':''}" onclick="state.roomFilter='block';renderList()">🔒 Chiusure</span>`;
+  document.getElementById('roomFilters').innerHTML=`<span class="fp${state.roomFilter===''?' on':''}" onclick="state.roomFilter='';renderList()">Tutte</span>`+ROOMS.map(r=>`<span class="fp${state.roomFilter===r?' on':''}" onclick="state.roomFilter='${r}';renderList()">${r}</span>`).join('')+`<span class="fp${state.roomFilter==='block'?' on':''}" onclick="state.roomFilter='block';renderList()">🔒 Chiusure</span>`+`<span class="fp${state.roomFilter==='canc'?' on':''}" onclick="state.roomFilter='canc';renderList()">❌ Annullate</span>`;
   let list=state.bookings.filter(b=>b.date.slice(0,4)===state.year);
-  if(state.roomFilter==='block')list=list.filter(b=>b.type==='block');
-  else if(state.roomFilter)list=list.filter(b=>b.type!=='block'&&roomNames(b).includes(state.roomFilter));
-  else list=list.filter(b=>b.type!=='block');
+  if(state.roomFilter==='canc')list=list.filter(b=>b.type!=='block'&&b.cancelled);
+  else if(state.roomFilter==='block')list=list.filter(b=>b.type==='block');
+  else if(state.roomFilter)list=list.filter(b=>b.type!=='block'&&!b.cancelled&&roomNames(b).includes(state.roomFilter));
+  else list=list.filter(b=>b.type!=='block'&&!b.cancelled);
   if(state.q)list=list.filter(b=>(b.name||'').toLowerCase().includes(state.q.toLowerCase()));
   const t=todayISO();
   const up=list.filter(b=>addDays(b.date,b.nights)>=t).sort((a,b)=>a.date.localeCompare(b.date));
@@ -444,7 +463,7 @@ function renderNow(){
   const lvl=db>=DORM_MAX?'over':(db>=DORM_BEDS?'full':'ok');
   const bg=lvl==='over'?'#F7EBE8':(lvl==='full'?'#E3EFE5':'#EAF0EA'),tc=lvl==='over'?'var(--red)':(lvl==='full'?DORM_C.full:'var(--green)');
   document.getElementById('nowDorm').innerHTML=`<div class="dormbox" style="background:${bg};border:1px solid ${tc}33;color:${tc}">🛏️ Dormitorio oggi: <b>${db}/${DORM_BEDS} letti occupati</b> — ${dfree>0?dfree+' liberi':(db>=DORM_MAX?'COMPLETO (6/6)':'posti fissi pieni · resta il letto mobile')}</div>`;
-  const real=state.bookings.filter(b=>b.type!=='block');
+  const real=state.bookings.filter(b=>b.type!=='block'&&!b.cancelled);
   const present=real.filter(b=>covers(b,t)).sort((a,b)=>addDays(a.date,a.nights).localeCompare(addDays(b.date,b.nights)));
   const out=real.filter(b=>{const co=addDays(b.date,b.nights);return co===t||co===tm}).sort((a,b)=>addDays(a.date,a.nights).localeCompare(addDays(b.date,b.nights)));
   const arr=real.filter(b=>b.date>t&&b.date<=w).sort((a,b)=>a.date.localeCompare(b.date));
@@ -473,7 +492,7 @@ function renderCal(){
   document.getElementById('calGrid').innerHTML=html;document.getElementById('calDay').innerHTML='';
 }
 function showCalDay(iso){state.selDay=iso;document.querySelectorAll('#calGrid .day').forEach(function(el){el.classList.toggle('sel',el.getAttribute('data-iso')===iso&&!el.classList.contains('today'))});
-  const o=dayOcc(iso);const here=state.bookings.filter(b=>covers(b,iso));const ar=state.bookings.filter(b=>b.date===iso&&b.type!=='block');
+  const o=dayOcc(iso);const here=state.bookings.filter(b=>covers(b,iso)&&!b.cancelled);const ar=state.bookings.filter(b=>b.date===iso&&b.type!=='block'&&!b.cancelled);
   const d=new Date(iso+'T00:00');const privFree=['Mimì','Lina','Suite'].filter(r=>!o.priv[r]);const dormFree=Math.max(0,DORM_BEDS-o.dorm);
   const dormTxt=`Dormitorio ${o.dorm}/${DORM_BEDS} letti`+(dormFree>0?` — ${dormFree} liberi${o.dorm>=DORM_BEDS?'':' (+1 mobile)'}`:(o.dorm>=DORM_MAX?' — COMPLETO':' — solo letto mobile'));
   let h=`<div class="section-t sm">${d.getDate()} ${MONTHS_F[d.getMonth()]}</div>`;
@@ -483,7 +502,7 @@ function showCalDay(iso){state.selDay=iso;document.querySelectorAll('#calGrid .d
 }
 function renderStorico(){
   const ys=[...new Set(state.bookings.filter(b=>b.type!=='block').map(b=>b.date.slice(0,4)))].sort();
-  const rows=ys.map(y=>{const bs=state.bookings.filter(b=>b.date.slice(0,4)===y&&b.type!=='block');const r=rn=>{let s=0;bs.forEach(b=>(b.rooms||[]).forEach(x=>{if(x.room===rn)s+=(+x.amount||0)}));return s};const lordo=bs.reduce((s,b)=>s+total(b),0);const osp=bs.reduce((s,b)=>s+(+b.guests||0),0);return{y,mimi:r('Mimì'),lina:r('Lina'),dorm:r('Dormitorio'),suite:r('Suite'),lordo,osp}});
+  const rows=ys.map(y=>{const bs=state.bookings.filter(b=>b.date.slice(0,4)===y&&b.type!=='block'&&!b.cancelled);const r=rn=>{let s=0;bs.forEach(b=>(b.rooms||[]).forEach(x=>{if(x.room===rn)s+=(+x.amount||0)}));return s};const lordo=bs.reduce((s,b)=>s+total(b),0);const osp=bs.reduce((s,b)=>s+(+b.guests||0),0);return{y,mimi:r('Mimì'),lina:r('Lina'),dorm:r('Dormitorio'),suite:r('Suite'),lordo,osp}});
   document.getElementById('storicoTbl').innerHTML=`<tr><th>Anno</th><th>Mimì</th><th>Lina</th><th>Dorm.</th><th>Suite</th><th>Lordo</th><th>Osp.</th></tr>`+rows.map(r=>`<tr class="${r.y==='2023'?'peak':''}"><td>${r.y}</td><td>${k1(r.mimi)}</td><td>${k1(r.lina)}</td><td>${k1(r.dorm)}</td><td>${r.suite?k1(r.suite):'—'}</td><td><b>${k1(r.lordo)}</b></td><td>${r.osp}</td></tr>`).join('');
 }
 function renderExp(){
@@ -501,13 +520,14 @@ function renderCmp(){
   var sa=document.getElementById('cmpA'),sb=document.getElementById('cmpB');
   sa.innerHTML=yrs.map(function(y){return '<option value="'+y+'"'+(y===state.cmpA?' selected':'')+'>'+y+'</option>'}).join('');
   sb.innerHTML=yrs.map(function(y){return '<option value="'+y+'"'+(y===state.cmpB?' selected':'')+'>'+y+'</option>'}).join('');
-  function M(y){var bk=state.bookings.filter(function(b){return b.type!=='block'&&b.date.slice(0,4)===y});var fatt=bk.reduce(function(s,b){return s+total(b)},0);var comm=bk.reduce(function(s,b){return s+(+b.commission||0)+(+b.sumup||0)},0);var spese=state.expenses.filter(function(e){return (e.date||'').slice(0,4)===y}).reduce(function(s,e){return s+(+e.amount||0)},0);return {fatt:fatt,utile:fatt-comm-spese,pren:bk.length,osp:bk.reduce(function(s,b){return s+(+b.guests||0)},0),notti:bk.reduce(function(s,b){return s+(+b.nights||0)},0),pell:bk.filter(function(b){return b.segment==='pellegrino'}).reduce(function(s,b){return s+(+b.guests||0)},0),spese:spese,comm:comm}}
+  function M(y){var bkAll=state.bookings.filter(function(b){return b.type!=='block'&&b.date.slice(0,4)===y});var bk=bkAll.filter(function(b){return !b.cancelled});var canc=bkAll.length-bk.length;var cancVal=bkAll.filter(function(b){return b.cancelled}).reduce(function(s,b){return s+total(b)},0);var pulizie=(state.cleaning||[]).filter(function(e){return (e.date||'').slice(0,4)===y}).reduce(function(s,e){return s+clnCostOf(e)},0);var fatt=bk.reduce(function(s,b){return s+total(b)},0);var comm=bk.reduce(function(s,b){return s+(+b.commission||0)+(+b.sumup||0)},0);var spese=state.expenses.filter(function(e){return (e.date||'').slice(0,4)===y}).reduce(function(s,e){return s+(+e.amount||0)},0);return {fatt:fatt,utile:fatt-comm-spese,pren:bk.length,osp:bk.reduce(function(s,b){return s+(+b.guests||0)},0),notti:bk.reduce(function(s,b){return s+(+b.nights||0)},0),pell:bk.filter(function(b){return b.segment==='pellegrino'}).reduce(function(s,b){return s+(+b.guests||0)},0),spese:spese,comm:comm,canc:canc,cancVal:cancVal,pulizie:pulizie}}
   var A=M(state.cmpA),B=M(state.cmpB);
-  var rows=[{l:'Fatturato lordo',k:'fatt',e:1,g:1},{l:'Utile ante imposte',k:'utile',e:1,g:1},{l:'Prenotazioni',k:'pren',g:1},{l:'Ospiti',k:'osp',g:1},{l:'Notti vendute',k:'notti',g:1},{l:'Pellegrini',k:'pell',g:1},{l:'Spese',k:'spese',e:1,g:0},{l:'Commissioni+SumUp',k:'comm',e:1,g:0}];
+  var rows=[{l:'Fatturato lordo',k:'fatt',e:1,g:1},{l:'Utile ante imposte',k:'utile',e:1,g:1},{l:'Prenotazioni',k:'pren',g:1},{l:'Ospiti',k:'osp',g:1},{l:'Notti vendute',k:'notti',g:1},{l:'Pellegrini',k:'pell',g:1},{l:'Cancellazioni',k:'canc',g:0},{l:'Valore annullato',k:'cancVal',e:1,g:0},{l:'Spese',k:'spese',e:1,g:0},{l:'🧹 Compenso pulizie',k:'pulizie',e:1,g:0},{l:'Commissioni+SumUp',k:'comm',e:1,g:0}];
   function cell(x,y,good){if(y===0)return {t:'—',col:'var(--grey)',a:''};var p=(x-y)/Math.abs(y)*100,eq=Math.abs(p)<0.05,up=x>y,fav=good?up:!up;return {t:(eq?'0%':(p>0?'+':'')+p.toFixed(1)+'%'),col:(eq?'var(--grey)':(fav?'var(--green)':'var(--red)')),a:(eq?'':(up?'▲ ':'▼ '))}}
   var h='<table class="stbl"><tr><th>Voce</th><th>'+state.cmpA+'</th><th>'+state.cmpB+'</th><th>Δ%</th></tr>';
   rows.forEach(function(r){var x=A[r.k],y=B[r.k];var c=cell(x,y,r.g);var fx=r.e?eur(x):String(x),fy=r.e?eur(y):String(y);h+='<tr><td>'+r.l+'</td><td>'+fx+'</td><td>'+fy+'</td><td style="color:'+c.col+';font-weight:600">'+c.a+c.t+'</td></tr>'});
   h+='</table>';
+  h+='<div class="note" style="margin-top:10px;font-size:11.5px">Le <b>cancellazioni</b> non contano in fatturato, ospiti e notti. Il <b>compenso pulizie</b> \u00e8 indicato a parte: se sul turno hai attivato \u201cAggiungi alle spese\u201d, \u00e8 gi\u00e0 compreso anche nella riga Spese.</div>';
   if(state.cmpA===state.cmpB)h+='<div class="note" style="margin-top:10px">Stai confrontando lo stesso anno: scegli due anni diversi nei menu in alto.</div>';
   body.innerHTML=h;
 }
@@ -540,12 +560,12 @@ function openForm(id){
     document.getElementById('formTitle').textContent=b.type==='block'?'Modifica chiusura':'Modifica prenotazione';
     f('f-name').value=b.name||'';f('f-date').value=b.date;f('f-nights').value=b.nights||1;f('f-guests').value=b.guests||0;f('f-comm').value=b.commission||'';f('f-sumup').value=b.sumup||'';f('f-acconto').value=b.acconto||'';f('f-phone').value=b.phone||'';f('f-needs').value=b.needs||'';f('f-notes').value=b.notes||'';
     state.fRegPol=b.regPol||'no';f('f-regdms').classList.toggle('on',!!b.regDMS);
-    f('delBtn').style.display='block';f('msgBtns').style.display=b.phone?'block':'none';f('pickContactBtn').style.display=('contacts' in navigator&&'ContactsManager' in window)?'block':'none';
+    f('delBtn').style.display='block';f('cancBtn').style.display=(b.type!=='block'&&!b.cancelled)?'block':'none';f('restoreBtn').style.display=b.cancelled?'block':'none';f('cancBanner').style.display=b.cancelled?'block':'none';f('msgBtns').style.display=b.phone?'block':'none';f('pickContactBtn').style.display=('contacts' in navigator&&'ContactsManager' in window)?'block':'none';
   }else{state.fType='p';state.fRooms={Dormitorio:0};state.fSeg='turista';state.fReceipt='nessuna';state.fChannel='Diretto';state.fPay='Contanti';
     document.getElementById('formTitle').textContent='Nuovo inserimento';
     ['f-name','f-comm','f-sumup','f-acconto','f-phone','f-needs','f-notes'].forEach(x=>f(x).value='');f('f-date').value=todayISO();f('f-nights').value=1;f('f-guests').value=1;
     state.fRegPol='no';f('f-regdms').classList.remove('on');
-    f('delBtn').style.display='none';f('msgBtns').style.display='none';f('pickContactBtn').style.display=('contacts' in navigator&&'ContactsManager' in window)?'block':'none';
+    f('delBtn').style.display='none';f('cancBtn').style.display='none';f('restoreBtn').style.display='none';f('cancBanner').style.display='none';f('msgBtns').style.display='none';f('pickContactBtn').style.display=('contacts' in navigator&&'ContactsManager' in window)?'block':'none';
   }
   ['commHint','sumupHint'].forEach(x=>document.getElementById(x).textContent='');
   document.querySelectorAll('#typeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.t===state.fType));
@@ -561,7 +581,7 @@ function instrUrl(){var base=location.origin+'/istruzioni.html';var rk=Object.ke
 function sendMsg(type){var s=state.settings||DEFAULT_SETTINGS;var phone=document.getElementById('f-phone').value;if(!(phone||'').replace(/[^0-9]/g,'')){toast('Aggiungi un numero');return}var name=(document.getElementById('f-name').value||'').trim();var channel=state.fChannel;var tpl;if(type==='welcome')tpl=s.welcome;else if(type==='instr'){tpl=s.instr}else{var ota=(channel==='Booking'||channel==='Airbnb'||channel==='Hostelworld');tpl=ota?s.ota:s.checkout}waOpen(phone,fillMsg(tpl,name,channel))}
 async function pickContact(){try{var c=await navigator.contacts.select(['name','tel'],{multiple:false});if(c&&c[0]){var t=(c[0].tel&&c[0].tel[0])||'';if(t)document.getElementById('f-phone').value=t;var n=(c[0].name&&c[0].name[0])||'';if(n&&!document.getElementById('f-name').value)document.getElementById('f-name').value=n;document.getElementById('msgBtns').style.display=document.getElementById('f-phone').value?'block':'none';toast('Contatto inserito')}}catch(e){toast('Selezione annullata')}}
 function saveSettings(){var g=function(id){return document.getElementById(id).value};state.settings={welcome:g('s-welcome'),checkout:g('s-checkout'),ota:g('s-ota'),instr:g('s-instr'),instrLink:g('s-instrlink').trim(),google:g('s-google').trim(),trip:g('s-trip').trim(),cleanPhone:g('s-cleanphone').trim()};persistS();toast('Messaggi salvati')}
-var CDOW=['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];function fmtClean(iso){var a=iso.split('-');var dt=new Date(+a[0],+a[1]-1,+a[2]);return CDOW[dt.getDay()]+' '+a[2]+'/'+a[1]}function cleaningData(days){var today=todayISO();var lim=addDays(today,days);var outs={},ins={};(state.bookings||[]).forEach(function(b){if(!b.date)return;var co=addDays(b.date,b.nights||0);(b.rooms||[]).forEach(function(r){var rm=r.room;(ins[b.date]=ins[b.date]||{})[rm]=true;if(co>=today&&co<lim){(outs[co]=outs[co]||{})[rm]=true;}});});var res=[];Object.keys(outs).sort().forEach(function(d){var rooms=Object.keys(outs[d]).sort().map(function(rm){return {room:rm,turn:!!(ins[d]&&ins[d][rm])};});res.push({date:d,rooms:rooms});});return res;}function cleaningText(days){var data=cleaningData(days);if(!data.length)return 'Aracoeli 20 \u2014 Nessuna pulizia prevista nei prossimi '+days+' giorni.';var t='\ud83e\uddf9 Pulizie Aracoeli 20\n(prossimi '+days+' giorni)\n';data.forEach(function(g){t+='\n'+fmtClean(g.date)+'\n';g.rooms.forEach(function(r){t+='\u2022 '+r.room+(r.turn?' \u2014 nuovo arrivo in giornata \u26a1':'')+'\n';});});t+='\n\u26a1 = stessa camera con nuovo arrivo lo stesso giorno: pulire entro il primo pomeriggio.';return t;}function renderCleaning(){var el=document.getElementById('cleanPreview');if(!el)return;var data=cleaningData(14);if(!data.length){el.innerHTML='<div class="note">Nessuna pulizia prevista nei prossimi 14 giorni.</div>';return;}var h='';data.forEach(function(g){h+='<div style="margin:9px 0 2px;font-weight:600;color:var(--dark)">'+fmtClean(g.date)+'</div>';g.rooms.forEach(function(r){h+='<div style="font-size:14px;padding:1px 0">\u2022 '+r.room+(r.turn?' <span style="color:var(--ocra);font-weight:600">\u26a1 nuovo arrivo</span>':'')+'</div>';});});el.innerHTML=h;}function shareCleaning(){var s=state.settings||DEFAULT_SETTINGS;var txt=cleaningText(14);var p=(s.cleanPhone||'').replace(/[^0-9]/g,'');if(p){if(p.length<=10&&p.charAt(0)==='3')p='39'+p;window.open('https://wa.me/'+p+'?text='+encodeURIComponent(txt),'_blank');}else{window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');}}function renderSettings(){var s=state.settings||DEFAULT_SETTINGS;var set=function(id,v){var el=document.getElementById(id);if(el&&document.activeElement!==el)el.value=v};set('s-welcome',s.welcome||'');set('s-checkout',s.checkout||'');set('s-ota',s.ota||'');set('s-instr',s.instr||'');set('s-instrlink',s.instrLink||'');set('s-google',s.google||'');set('s-trip',s.trip||'');set('s-cleanphone',s.cleanPhone||'')}
+var CDOW=['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];function fmtClean(iso){var a=iso.split('-');var dt=new Date(+a[0],+a[1]-1,+a[2]);return CDOW[dt.getDay()]+' '+a[2]+'/'+a[1]}function cleaningData(days){var today=todayISO();var lim=addDays(today,days);var outs={},ins={};(state.bookings||[]).forEach(function(b){if(!b.date)return;if(b.cancelled)return;var co=addDays(b.date,b.nights||0);(b.rooms||[]).forEach(function(r){var rm=r.room;(ins[b.date]=ins[b.date]||{})[rm]=true;if(co>=today&&co<lim){(outs[co]=outs[co]||{})[rm]=true;}});});var res=[];Object.keys(outs).sort().forEach(function(d){var rooms=Object.keys(outs[d]).sort().map(function(rm){return {room:rm,turn:!!(ins[d]&&ins[d][rm])};});res.push({date:d,rooms:rooms});});return res;}function cleaningText(days){var data=cleaningData(days);if(!data.length)return 'Aracoeli 20 \u2014 Nessuna pulizia prevista nei prossimi '+days+' giorni.';var t='\ud83e\uddf9 Pulizie Aracoeli 20\n(prossimi '+days+' giorni)\n';data.forEach(function(g){t+='\n'+fmtClean(g.date)+'\n';g.rooms.forEach(function(r){t+='\u2022 '+r.room+(r.turn?' \u2014 nuovo arrivo in giornata \u26a1':'')+'\n';});});t+='\n\u26a1 = stessa camera con nuovo arrivo lo stesso giorno: pulire entro il primo pomeriggio.';return t;}function renderCleaning(){var el=document.getElementById('cleanPreview');if(!el)return;var data=cleaningData(14);if(!data.length){el.innerHTML='<div class="note">Nessuna pulizia prevista nei prossimi 14 giorni.</div>';return;}var h='';data.forEach(function(g){h+='<div style="margin:9px 0 2px;font-weight:600;color:var(--dark)">'+fmtClean(g.date)+'</div>';g.rooms.forEach(function(r){h+='<div style="font-size:14px;padding:1px 0">\u2022 '+r.room+(r.turn?' <span style="color:var(--ocra);font-weight:600">\u26a1 nuovo arrivo</span>':'')+'</div>';});});el.innerHTML=h;}function shareCleaning(){var s=state.settings||DEFAULT_SETTINGS;var txt=cleaningText(14);var p=(s.cleanPhone||'').replace(/[^0-9]/g,'');if(p){if(p.length<=10&&p.charAt(0)==='3')p='39'+p;window.open('https://wa.me/'+p+'?text='+encodeURIComponent(txt),'_blank');}else{window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');}}function renderSettings(){var s=state.settings||DEFAULT_SETTINGS;var set=function(id,v){var el=document.getElementById(id);if(el&&document.activeElement!==el)el.value=v};set('s-welcome',s.welcome||'');set('s-checkout',s.checkout||'');set('s-ota',s.ota||'');set('s-instr',s.instr||'');set('s-instrlink',s.instrLink||'');set('s-google',s.google||'');set('s-trip',s.trip||'');set('s-cleanphone',s.cleanPhone||'')}
 async function saveForm(){
   const f=x=>document.getElementById(x);const date=f('f-date').value;if(!date){toast('Inserisci la data');return}
   const rooms=Object.keys(state.fRooms);if(!rooms.length){toast('Seleziona almeno una stanza');return}
@@ -571,11 +591,14 @@ async function saveForm(){
     while(it<co){const occ=dormBedsOn(it,state.editId)+guests;if(occ>worst){worst=occ;wd=it}it=addDays(it,1)}
     if(worst>DORM_BEDS){const msg=worst>DORM_MAX?`⚠️ Il ${fmtShort(wd)} il dormitorio arriverebbe a ${worst} letti, oltre il massimo di ${DORM_MAX} (5 fissi + 1 mobile). Salvare comunque?`:`⚠️ Il ${fmtShort(wd)} il dormitorio raggiunge ${worst}/${DORM_BEDS} letti: posti fissi esauriti, resta solo il letto mobile. Salvare comunque?`;if(!confirm(msg))return}
   }
-  const rec={id:state.editId||uid(),type:state.fType,date,nights:+f('f-nights').value||1,name:f('f-name').value.trim(),rooms:rooms.map(r=>({room:r,amount:isP?(+state.fRooms[r]||0):0})),guests:isP?guests:0,segment:state.fSeg,receipt:state.fReceipt,channel:state.fChannel,commission:isP?(+f('f-comm').value||0):0,payment:state.fPay,sumup:isP?(+f('f-sumup').value||0):0,acconto:isP?(+f('f-acconto').value||0):0,regPol:state.fRegPol,regDMS:f('f-regdms').classList.contains('on'),phone:f('f-phone').value.trim(),needs:f('f-needs').value.trim(),notes:f('f-notes').value.trim()};
+  const _prev=state.editId?state.bookings.find(x=>x.id===state.editId):null;
+  const rec={id:state.editId||uid(),type:state.fType,date,nights:+f('f-nights').value||1,name:f('f-name').value.trim(),rooms:rooms.map(r=>({room:r,amount:isP?(+state.fRooms[r]||0):0})),guests:isP?guests:0,segment:state.fSeg,receipt:state.fReceipt,channel:state.fChannel,commission:isP?(+f('f-comm').value||0):0,payment:state.fPay,sumup:isP?(+f('f-sumup').value||0):0,acconto:isP?(+f('f-acconto').value||0):0,regPol:state.fRegPol,regDMS:f('f-regdms').classList.contains('on'),phone:f('f-phone').value.trim(),needs:f('f-needs').value.trim(),notes:f('f-notes').value.trim(),cancelled:_prev?!!_prev.cancelled:false,cancelledAt:_prev?(_prev.cancelledAt||''):''};
   if(state.editId){const i=state.bookings.findIndex(x=>x.id===state.editId);state.bookings[i]=rec}else state.bookings.push(rec);
   await persist();state.year=date.slice(0,4);buildYears();render();closeForm();toast(state.editId?'Aggiornato':'Salvato');
 }
-async function deleteBooking(){if(!state.editId)return;if(!confirm('Eliminare questa voce?'))return;state.bookings=state.bookings.filter(x=>x.id!==state.editId);await persist();buildYears();render();closeForm();toast('Eliminata')}
+async function deleteBooking(){if(!state.editId)return;if(!confirm('Eliminare DEFINITIVAMENTE questa voce?\n\nUsalo solo se l\'hai inserita per errore: sparisce del tutto, senza lasciare traccia.'))return;state.bookings=state.bookings.filter(x=>x.id!==state.editId);await persist();buildYears();render();closeForm();toast('Eliminata')}
+async function cancelBooking(){if(!state.editId)return;const i=state.bookings.findIndex(x=>x.id===state.editId);if(i<0)return;if(!confirm('Segnare come CANCELLATA DAL CLIENTE?\n\nResta nello storico come cancellazione, ma non conta piu\' in ricavi, ospiti, calendario e lista pulizie.'))return;state.bookings[i].cancelled=true;state.bookings[i].cancelledAt=todayISO();await persist();buildYears();render();closeForm();toast('Segnata come cancellata')}
+async function restoreBooking(){if(!state.editId)return;const i=state.bookings.findIndex(x=>x.id===state.editId);if(i<0)return;if(!confirm('Ripristinare questa prenotazione?\n\nTornera\' a contare in ricavi, ospiti e calendario.'))return;state.bookings[i].cancelled=false;state.bookings[i].cancelledAt='';await persist();buildYears();render();closeForm();toast('Prenotazione ripristinata')}
 
 function openExp(id){state.expEditId=(typeof id==='string')?id:null;document.getElementById('e-cat').innerHTML=ECATS.map(c=>`<div class="chip" data-e="${c}" onclick="pickECat('${c}')">${c}</div>`).join('');const f=x=>document.getElementById(x);if(state.expEditId){const e=state.expenses.find(x=>x.id===state.expEditId);document.getElementById('expTitle').textContent='Modifica spesa';f('e-desc').value=e.description||'';f('e-date').value=e.date;f('e-amount').value=e.amount||'';state.eCat=e.category;f('expDelBtn').style.display='block'}else{document.getElementById('expTitle').textContent='Nuova spesa';f('e-desc').value='';f('e-date').value=todayISO();f('e-amount').value='';state.eCat='Bollette';f('expDelBtn').style.display='none'}document.querySelectorAll('#e-cat .chip').forEach(c=>c.classList.toggle('on',c.dataset.e===state.eCat));document.getElementById('expModal').classList.add('open')}
 function pickECat(c){state.eCat=c;document.querySelectorAll('#e-cat .chip').forEach(x=>x.classList.toggle('on',x.dataset.e===c))}
@@ -658,7 +681,8 @@ document.getElementById('clnModal').addEventListener('click',e=>{if(e.target.id=
 
 function exportCSV(){
   const yr=state.year;
-  const real=state.bookings.filter(b=>b.type!=='block'&&(b.date||'').slice(0,4)===yr);
+  const real=state.bookings.filter(b=>b.type!=='block'&&(b.date||'').slice(0,4)===yr&&!b.cancelled);
+  const cancL=state.bookings.filter(b=>b.type!=='block'&&b.cancelled&&(b.date||'').slice(0,4)===yr).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   const exps=state.expenses.filter(e=>(e.date||'').slice(0,4)===yr);
   if(!real.length&&!exps.length){toast('Nessun dato per il '+yr);return}
   const head=['Data','Checkout','Nome','Stanze','Notti','Ospiti','Tipo','Canale','Lordo','Acconto','DaSaldare','Pagamento','Ricevuta','Commissione','SumUp','Netto','RegPolizia','RegDMS','Telefono','Esigenze','Note'];
@@ -670,12 +694,14 @@ function exportCSV(){
   rows.forEach(r=>out.push(enc(r)));
   out.push('',enc(['SPESE '+yr]),enc(['Data','Categoria','Descrizione','Importo']));
   if(expRows.length){expRows.forEach(r=>out.push(enc(r)))}else{out.push(enc(['','','Nessuna spesa','0.00']))}
+  out.push('',enc(['CANCELLAZIONI '+yr]),enc(['Data','Nome','Stanze','Notti','Ospiti','Canale','ValoreAnnullato','Cancellata il']));
+  if(cancL.length){cancL.forEach(b=>out.push(enc([b.date,b.name||'',roomNames(b).join(' + '),b.nights,b.guests,b.channel||'',total(b).toFixed(2),b.cancelledAt||''])))}else{out.push(enc(['','Nessuna cancellazione','','','','','0.00','']))}
   out.push('',enc(['RIEPILOGO '+yr]),enc(['Fatturato lordo',tot.toFixed(2)]),enc(['Commissioni OTA',comm.toFixed(2)]),enc(['Commissioni SumUp',sumup.toFixed(2)]),enc(['Spese',spese.toFixed(2)]),enc(['Utile ante imposte',(tot-comm-sumup-spese).toFixed(2)]));
   const NL=String.fromCharCode(10),BOM=String.fromCharCode(0xFEFF);
   dl(BOM+out.join(NL),'aracoeli20_'+yr+'.csv','text/csv');toast('Esportato '+yr+' con spese');
 }
 function exportJSON(){dl(JSON.stringify({app:'Aracoeli20',v:3,exported:new Date().toISOString(),bookings:state.bookings,expenses:state.expenses,cleaning:state.cleaning},null,2),'aracoeli20_backup.json','application/json');toast('Backup esportato')}
-function importJSON(inp){const file=inp.files[0];if(!file)return;const r=new FileReader();r.onload=async()=>{try{const d=JSON.parse(r.result);const imp=Array.isArray(d)?d:d.bookings;if(!Array.isArray(imp))throw 0;if(!confirm(`Importare ${imp.length} voci? Sostituiranno i dati attuali.`)){inp.value='';return}state.bookings=imp.map(b=>({id:b.id||uid(),type:b.type||'p',name:b.name||'',date:b.date,nights:+b.nights||1,rooms:b.rooms||(b.room?[{room:b.room,amount:+b.amount||0}]:[]),guests:+b.guests||((+b.guestsC||0)+(+b.guestsD||0)),segment:b.segment||((+b.guestsD>0)?'pellegrino':'turista'),receipt:b.receipt||'nessuna',channel:b.channel||'Diretto',commission:+b.commission||0,payment:b.payment||'Contanti',sumup:+b.sumup||0,acconto:+b.acconto||0,regPol:(typeof b.regPol==='string'?b.regPol:(b.regPol?'si':'no')),regDMS:!!b.regDMS,phone:b.phone||'',needs:b.needs||'',notes:b.notes||''}));if(d.expenses)state.expenses=d.expenses;if(d.cleaning)state.cleaning=d.cleaning;await persist();await persistE();await persistC();buildYears();render();toast('Backup importato')}catch(e){toast('File non valido')}inp.value=''};r.readAsText(file)}
+function importJSON(inp){const file=inp.files[0];if(!file)return;const r=new FileReader();r.onload=async()=>{try{const d=JSON.parse(r.result);const imp=Array.isArray(d)?d:d.bookings;if(!Array.isArray(imp))throw 0;if(!confirm(`Importare ${imp.length} voci? Sostituiranno i dati attuali.`)){inp.value='';return}state.bookings=imp.map(b=>({id:b.id||uid(),type:b.type||'p',name:b.name||'',date:b.date,nights:+b.nights||1,rooms:b.rooms||(b.room?[{room:b.room,amount:+b.amount||0}]:[]),guests:+b.guests||((+b.guestsC||0)+(+b.guestsD||0)),segment:b.segment||((+b.guestsD>0)?'pellegrino':'turista'),receipt:b.receipt||'nessuna',channel:b.channel||'Diretto',commission:+b.commission||0,payment:b.payment||'Contanti',sumup:+b.sumup||0,acconto:+b.acconto||0,regPol:(typeof b.regPol==='string'?b.regPol:(b.regPol?'si':'no')),regDMS:!!b.regDMS,phone:b.phone||'',needs:b.needs||'',notes:b.notes||'',cancelled:!!b.cancelled,cancelledAt:b.cancelledAt||''}));if(d.expenses)state.expenses=d.expenses;if(d.cleaning)state.cleaning=d.cleaning;await persist();await persistE();await persistC();buildYears();render();toast('Backup importato')}catch(e){toast('File non valido')}inp.value=''};r.readAsText(file)}
 function dl(c,name,type){const b=new Blob([c],{type});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeForm()});
 document.getElementById('expModal').addEventListener('click',e=>{if(e.target.id==='expModal')closeExp()});
