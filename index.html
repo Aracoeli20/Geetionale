@@ -447,35 +447,48 @@ function bkCard(b,cls){
   return `<div class="bk ${_cc}" onclick="openForm('${b.id}')"><div class="bk-date"><div class="d">${dt.getDate()}</div><div class="m">${MONTHS[dt.getMonth()]}</div></div><div class="bk-main"><div class="bk-name">${esc(b.name)||'\u2014'}</div><div class="bk-l">\ud83d\udcc5 ${fmtShort(b.date)} \u2192 ${fmtShort(addDays(b.date,b.nights))} \u00b7 \ud83d\udecf ${esc(roomNames(b).join(' + '))} \u00b7 ${b.nights} ${b.nights===1?'notte':'notti'} \u00b7 ${b.guests}p</div><div class="bk-l">${seg.i} ${seg.l}${b.channel?` \u00b7 ${CHANIC[b.channel]||'\ud83d\udccc'} ${esc(b.channel)}`:''}${b.payment?` \u00b7 ${PAYIC[b.payment]||''} ${esc(b.payment)}`:''}</div><div class="bk-meta">${_ct}${b.cancelled?'':`<span class="tag ${_dCls}">${_dTxt}</span><span class="tag ${_pCls}">${_pTxt}</span>`}${b.needs?'<span class="tag needs">\ud83c\udf7d\ufe0f</span>':''}${(b.receipt&&b.receipt!=='nessuna')?`<span class="tag rec">${b.receipt==='cartacea'?'\ud83e\uddfe':'\ud83d\udcc4'} ${b.receipt}</span>`:''}</div>${roomDots(b)}</div><div class="bk-amt"><div class="a">${eur(total(b))}</div>${b.acconto>0?`<div class="due">saldo ${eur(due)}</div>`:''}${b.phone?`<button class="wachip" onclick="event.stopPropagation();waOpen('${(b.phone||'').replace(/[^0-9 +]/g,'')}')" title="WhatsApp">\ud83d\udcac</button>`:''}</div></div>`;
 }
 
-function dmsPendList(){const t=todayISO();return state.bookings.filter(b=>b.type!=='block'&&!b.cancelled&&!b.regDMS&&b.date<=t).sort((a,b)=>a.date.localeCompare(b.date))}
+function dmsPendAll(){const t=todayISO();return state.bookings.filter(b=>b.type!=='block'&&!b.cancelled&&!b.regDMS&&b.date<=t)}
+function dmsPendList(y,m){let l=dmsPendAll();if(y)l=l.filter(b=>b.date.slice(0,4)===String(y));if(m!==undefined&&m!==null)l=l.filter(b=>+b.date.slice(5,7)-1===+m);return l.sort((a,b)=>a.date.localeCompare(b.date))}
 function dmsRows(l){return l.map(b=>{const d=new Date(b.date+'T00:00');const dd=String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();return dd+'  '+(b.name||'\u2014')+'  \u00b7  '+roomNames(b).join(' + ')+'  \u00b7  '+b.nights+(b.nights===1?' notte':' notti')+'  \u00b7  '+b.guests+'p'+(b.channel?'  \u00b7  '+b.channel:'')}).join('\n')}
-function copyDms(){
-  const l=dmsPendList();
+function copyDms(m){
+  const l=dmsPendList(state.year,m);
   if(!l.length){toast('Nessun ospite da registrare');return}
-  const txt='DMS \u2014 da registrare ('+l.length+')\n\n'+dmsRows(l);
-  const ok=()=>toast('Elenco copiato');
+  const per=(m===undefined||m===null)?('anno '+state.year):(MONTHS_F[m]+' '+state.year);
+  const txt='DMS \u2014 da registrare \u00b7 '+per+' ('+l.length+')\n\n'+dmsRows(l);
+  const ok=()=>toast('Elenco copiato \u00b7 '+per);
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(ok,()=>fallbackCopy(txt,ok))}
   else fallbackCopy(txt,ok);
 }
 function fallbackCopy(txt,ok){try{const ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();ok()}catch(e){toast('Copia non riuscita')}}
-function markDmsAll(){
-  const l=dmsPendList();
+function markDmsAll(m){
+  const l=dmsPendList(state.year,m);
   if(!l.length)return;
-  if(!confirm('Segnare tutti i '+l.length+' ospiti come REGISTRATI sul DMS?\n\nFallo solo dopo averli inseriti davvero nel portale.'))return;
+  const per=(m===undefined||m===null)?('tutto il '+state.year):(MONTHS_F[m]+' '+state.year);
+  if(!confirm('Segnare '+l.length+' ospit'+(l.length===1?'e':'i')+' di '+per+' come REGISTRAT'+(l.length===1?'O':'I')+' sul DMS?\n\nFallo solo dopo averli inseriti davvero nel portale.'))return;
   const ids={};l.forEach(b=>{ids[b.id]=1});
   state.bookings.forEach(b=>{if(ids[b.id])b.regDMS=true});
-  persist();renderList();toast(l.length+' segnati come registrati');
+  persist();renderList();toast(l.length+' segnat'+(l.length===1?'o':'i')+' \u00b7 '+per);
 }
-
 function renderList(){
-  const _dmsP=dmsPendList();
+  const _dmsP=dmsPendList(state.year);
   document.getElementById('roomFilters').innerHTML=`<span class="fp${state.roomFilter===''?' on':''}" onclick="state.roomFilter='';renderList()">Tutte</span>`+ROOMS.map(r=>`<span class="fp${state.roomFilter===r?' on':''}" onclick="state.roomFilter='${r}';renderList()">${r}</span>`).join('')+`<span class="fp${state.roomFilter==='dms'?' on':''}" onclick="state.roomFilter='dms';renderList()">🏛 DMS da fare${_dmsP.length?' ('+_dmsP.length+')':''}</span>`+`<span class="fp${state.roomFilter==='block'?' on':''}" onclick="state.roomFilter='block';renderList()">🔒 Chiusure</span>`+`<span class="fp${state.roomFilter==='canc'?' on':''}" onclick="state.roomFilter='canc';renderList()">❌ Annullate</span>`;
   if(state.roomFilter==='dms'){
     const elD=document.getElementById('bkList');
     let dl=_dmsP;
     if(state.q)dl=dl.filter(b=>(b.name||'').toLowerCase().includes(state.q.toLowerCase()));
-    if(!dl.length){elD.innerHTML=`<div class="empty"><div class="ico">🏛</div><p>${state.q?'Nessun risultato.':'Tutto registrato sul DMS.<br>Nessun ospite in sospeso.'}</p></div>`;return}
-    elD.innerHTML=`<div class="note" style="background:#F7E3D8;color:#8A4B2A"><b>🏛 ${dl.length} ospit${dl.length===1?'e':'i'} da registrare</b><br>Già arrivati e non ancora comunicati al DMS — tutti gli anni, dal più vecchio.<div style="display:flex;gap:8px;margin-top:11px"><button class="btn ghost" style="margin:0;padding:11px;font-size:13.5px" onclick="event.stopPropagation();copyDms()">📋 Copia elenco</button><button class="btn ghost" style="margin:0;padding:11px;font-size:13.5px" onclick="event.stopPropagation();markDmsAll()">✅ Segna registrate</button></div></div>`+dl.map(b=>bkCard(b)).join('');
+    const _oth=dmsPendAll().filter(b=>b.date.slice(0,4)!==state.year).length;
+    const _othNote=_oth?`<div class="note" style="font-size:11.5px;margin-top:14px">Altri anni: <b>${_oth}</b> ancora da registrare. Cambia anno in alto per vederli.</div>`:'';
+    if(!dl.length){elD.innerHTML=`<div class="empty"><div class="ico">🏛</div><p>${state.q?'Nessun risultato.':'Tutto registrato sul DMS<br>per il '+state.year+'.'}</p></div>`+_othNote;return}
+    const _bm={};dl.forEach(b=>{const m=+b.date.slice(5,7)-1;(_bm[m]=_bm[m]||[]).push(b)});
+    const _bs='margin:0;padding:9px 12px;font-size:12.5px;width:auto;flex:1';
+    let h=`<div class="note" style="background:#F7E3D8;color:#8A4B2A"><b>🏛 ${dl.length} da registrare nel ${state.year}</b><br>Ospiti già arrivati e non ancora comunicati al DMS.<div style="display:flex;gap:8px;margin-top:11px"><button class="btn ghost" style="${_bs}" onclick="event.stopPropagation();copyDms()">📋 Copia l'anno</button><button class="btn ghost" style="${_bs}" onclick="event.stopPropagation();markDmsAll()">✅ Segna l'anno</button></div></div>`;
+    Object.keys(_bm).map(Number).sort((a,b)=>a-b).forEach(m=>{
+      const lm=_bm[m];
+      h+=`<div class="section-t sm" style="display:flex;justify-content:space-between;align-items:baseline"><span>${MONTHS_F[m]} ${state.year}</span><span style="font-weight:500;text-transform:none;letter-spacing:0">${lm.length} da fare</span></div>`;
+      h+=`<div style="display:flex;gap:8px;margin:0 0 10px"><button class="btn ghost" style="${_bs}" onclick="event.stopPropagation();copyDms(${m})">📋 Copia</button><button class="btn ghost" style="${_bs}" onclick="event.stopPropagation();markDmsAll(${m})">✅ Segna fatto</button></div>`;
+      h+=lm.map(b=>bkCard(b)).join('');
+    });
+    elD.innerHTML=h+_othNote;
     return;
   }
   let list=state.bookings.filter(b=>b.date.slice(0,4)===state.year);
