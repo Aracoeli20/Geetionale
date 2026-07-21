@@ -71,7 +71,7 @@ main{flex:1;padding:16px 14px 92px;overflow-y:auto}
 .cal .day.empty{background:transparent;border:none}.cal .day.today{border-color:var(--ocra);border-width:2px}.cal .day.sel{border-color:var(--blu);border-width:2px}
 .cal .day .dn{font-weight:500;font-size:12px}
 .cal .day .stripes{position:absolute;bottom:0;left:0;right:0;display:flex;flex-direction:column;gap:1.5px;padding:0 3px 3px}
-.cal .day .stripe{height:4px;border-radius:2px;width:100%}
+.cal .day .stripe{height:4px;border-radius:2px;width:100%}.stripe.free{background:rgba(32,48,80,.07)}.stripe.blk{background:repeating-linear-gradient(45deg,#A8A296 0 2px,#D6D1C7 2px 4px)}.day.closed{background:repeating-linear-gradient(45deg,var(--card) 0 5px,#EDE8DE 5px 10px)}.day.closed .dn{text-decoration:line-through;text-decoration-thickness:1.5px;color:var(--grey)}.calleg .d.blk{background:repeating-linear-gradient(45deg,#A8A296 0 2px,#D6D1C7 2px 4px)}.dbeds{position:absolute;top:3px;right:4px;font-size:8.5px;font-weight:700;line-height:1;letter-spacing:-.02em}.cstat{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:13px 14px;margin-top:14px}.cstat .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}.cstat .lb{font-size:12px;color:var(--grey);font-weight:600;text-transform:uppercase;letter-spacing:.04em}.cstat .pc{font-family:var(--serif);font-size:26px;font-weight:600;color:var(--dark);line-height:1}.cstat .tr{background:var(--salvia);height:8px;border-radius:4px;overflow:hidden}.cstat .fl{height:100%;border-radius:4px;background:var(--ocra);transition:width .4s}.cstat .sub{font-size:11.5px;color:var(--grey);margin-top:8px;line-height:1.5}
 .fab{position:fixed;bottom:82px;right:calc(50% - 246px);width:54px;height:54px;border-radius:50%;background:var(--ocra);color:#fff;border:none;font-size:28px;box-shadow:0 6px 18px rgba(176,110,39,.45);z-index:60;display:flex;align-items:center;justify-content:center}
 @media(max-width:520px){.fab{right:20px}}.fab:active{transform:scale(.93)}
 .nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:520px;background:#fff;border-top:1px solid var(--line);display:flex;padding:7px 0 calc(env(safe-area-inset-bottom) + 7px);z-index:55}
@@ -119,7 +119,7 @@ main{flex:1;padding:16px 14px 92px;overflow-y:auto}
 .duebox{background:#F7F0E2;border:1px solid var(--grano);border-radius:10px;padding:9px 13px;font-size:13px;color:var(--dark);margin-bottom:13px;display:flex;justify-content:space-between}.duebox b{color:var(--ocra)}
 .needsbox{background:#F7EBE8;border:1px solid #E8D2CE;border-radius:10px;padding:9px 12px;font-size:12.5px;color:var(--red);margin-bottom:9px}.needsbox b{font-weight:600}
 .subt{font-size:11px;color:var(--grey);margin:-6px 0 10px;padding:0 2px}
-.dormbox{border-radius:11px;padding:11px 14px;font-size:13px;margin-bottom:12px;font-weight:500}
+.tmw{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--ocra);border-radius:11px;padding:11px 13px;margin-bottom:8px}.tmw .n{font-weight:600;font-size:14px}.tmw .s{font-size:11.5px;color:var(--grey);margin-top:3px;line-height:1.45}.tmw .chip{display:inline-block;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:9px;margin-top:6px}.tmw .chip.y{background:#DDF0E4;color:#2C6B45}.tmw .chip.n{background:#F7E3D8;color:#8A4B2A}.tmw .a{display:flex;gap:7px;margin-top:10px}.tmw .a button{flex:1;border:1px solid var(--line);background:var(--card);border-radius:9px;padding:9px;font-size:12.5px;font-family:var(--sans);font-weight:600;color:var(--dark)}.tmw .a button.wa{background:#25D366;color:#fff;border-color:#25D366}.tmw .a button.dis{opacity:.4}.dormbox{border-radius:11px;padding:11px 14px;font-size:13px;margin-bottom:12px;font-weight:500}
 .tag.cash{background:#FBEFC8;color:#9A6B1A}
 .tag.rec{background:#E7EEF0;color:#3A5A6E}.tag.pay{background:#E7EEF0;color:#3A5A6E}.tag.rgok{background:#DDF0E4;color:#2C6B45}.tag.rgtodo{background:#ECEAE4;color:#8A8578}.tag.rgmiss{background:#F3D6D2;color:#A23B2E}
 .wachip{background:#25D366;color:#fff;border:none;width:30px;height:30px;border-radius:50%;font-size:15px;margin-top:5px;display:inline-flex;align-items:center;justify-content:center;line-height:1;flex-shrink:0}
@@ -174,11 +174,13 @@ main{flex:1;padding:16px 14px 92px;overflow-y:auto}
       <div class="cal-nav"><button onclick="calMove(-1)">‹</button><div class="mo" id="calMonth"></div><button onclick="calMove(1)">›</button></div>
       <div class="calleg" id="calLeg"></div>
       <div class="cal" id="calGrid"></div>
+      <div id="calStats"></div>
       <div id="calDay"></div>
     </div>
     <div class="view" id="v-now">
       <div class="section-t">Oggi · <span id="todayStr"></span></div>
       <div id="nowDorm"></div>
+      <div class="section-t sm" style="margin-top:16px">📋 Domani · <span id="tmwStr"></span></div><div id="nowTmw"></div>
       <div class="section-t sm">🟢 Presenti ora</div><div id="nowPresent"></div>
       <div class="section-t sm">🔶 In partenza (oggi/domani)</div><div id="nowOut"></div>
       <div class="section-t sm">🔵 In arrivo (prossimi 7 giorni)</div><div id="nowIn"></div>
@@ -214,7 +216,8 @@ main{flex:1;padding:16px 14px 92px;overflow-y:auto}
       <div class="note">Dati reali dall'Excel. Calo 2023→2025 nelle camere private; il dormitorio ha tenuto. Il 2026 è parziale.</div>
       <div style="overflow-x:auto"><table class="stbl" id="storicoTbl"></table></div>
       <div class="section-t">Backup &amp; Dati</div>
-      <div class="note">Dati salvati su questo dispositivo. Esporta spesso: <b>CSV</b> per il computer, <b>JSON</b> per ripristinare.</div>
+      <div id="bkStatus"></div>
+      <div class="note">Il <b>JSON</b> contiene tutto: prenotazioni, spese, pulizie e impostazioni. Il <b>CSV</b> serve per aprire i dati sul computer.</div>
       <div class="bkbtns">
         <button class="btn" onclick="exportCSV()">⬇️ Esporta anno selezionato + spese (CSV)</button>
         <button class="btn ghost" onclick="exportJSON()">💾 Backup completo (JSON)</button>
@@ -372,7 +375,8 @@ function net(b){return total(b)-(+b.commission||0)-(+b.sumup||0)}
 function covers(b,iso){return b.date<=iso&&addDays(b.date,b.nights)>iso}
 function needsReg(b){return b.type!=='block'&&(b.regPol!=='si'||!b.regDMS)}
 function dormBedsOn(iso,exclId){let n=0;state.bookings.forEach(b=>{if(b.id===exclId)return;if(b.cancelled)return;if(!roomNames(b).includes('Dormitorio'))return;if(!covers(b,iso))return;n+=(b.type==='block')?DORM_BEDS:(+b.guests||0)});return n}
-function dayOcc(iso){const o={priv:{},dorm:0,block:false};state.bookings.forEach(b=>{if(b.cancelled)return;if(!covers(b,iso))return;roomNames(b).forEach(r=>{if(r==='Dormitorio'){o.dorm+=(b.type==='block')?DORM_BEDS:(+b.guests||0)}else{o.priv[r]=b.type==='block'?'block':true}});if(b.type==='block')o.block=true});return o}
+function dormCol(n){return n>=DORM_MAX?DORM_C.over:(n>=DORM_BEDS?DORM_C.full:DORM_C.ok)}
+function dayOcc(iso){const o={priv:{},dorm:0,block:false,dormBlock:false};state.bookings.forEach(b=>{if(b.cancelled)return;if(!covers(b,iso))return;roomNames(b).forEach(r=>{if(r==='Dormitorio'){o.dorm+=(b.type==='block')?DORM_BEDS:(+b.guests||0);if(b.type==='block')o.dormBlock=true}else{o.priv[r]=b.type==='block'?'block':true}});if(b.type==='block')o.block=true});return o}
 
 function seedBookings(){return SEED.map((a,i)=>({id:'h'+i,type:'p',date:a[0],nights:a[1],name:a[2],rooms:a[3].map(x=>({room:x[0],amount:x[1]})),guests:(a[4]||0)+(a[5]||0),segment:a[5]>0?'pellegrino':'turista',channel:a[6],commission:a[7],sumup:a[8],acconto:a[9]||0,regPol:a[10],regDMS:!!a[11],receipt:a[14]||'nessuna',payment:(a[6]==='Booking'||a[6]==='Airbnb')?'Piattaforma':(a[8]>0?'Carta':'Contanti'),phone:'',needs:a[12],notes:a[13]||''}))}
 function seedExpenses(){return EXP_SEED.map(function(e){return {id:e.id,date:e.date,category:e.category,description:e.description,amount:e.amount}})}
@@ -384,7 +388,7 @@ async function persistE(){if(currentUid){try{await docRef().set({expenses:JSON.s
 async function persistS(){if(currentUid){try{await docRef().set({settings:JSON.stringify(state.settings),updated:Date.now()},{merge:true})}catch(e){toast('Errore salvataggio')}}}
 function buildYears(){const ys=new Set(state.bookings.map(b=>b.date.slice(0,4)));ys.add(String(new Date().getFullYear()));const arr=[...ys].sort().reverse();if(!arr.includes(state.year))state.year=arr[0];document.getElementById('yearSel').innerHTML=arr.map(y=>`<option value="${y}"${y===state.year?' selected':''}>${y}</option>`).join('')}
 function yb(){return state.bookings.filter(b=>b.date.slice(0,4)===state.year&&b.type!=='block'&&!b.cancelled)}
-function render(){renderDash();renderList();renderStorico();renderNow();renderCal();renderExp();renderCmp();renderClean();document.getElementById('yearSel').value=state.year}
+function render(){renderDash();renderList();renderStorico();renderNow();renderCal();renderExp();renderCmp();renderClean();renderBackupStatus();document.getElementById('yearSel').value=state.year}
 
 function renderDash(){
   const b=yb();
@@ -395,12 +399,21 @@ function renderDash(){
   const guests=b.reduce((s,x)=>s+(+x.guests||0),0);
   const futI=b.filter(x=>x.date>today).reduce((s,x)=>s+total(x),0);
   const cancN=state.bookings.filter(x=>x.type!=='block'&&x.cancelled&&(x.date||'').slice(0,4)===state.year).length;
+  const soldRN=b.reduce((s,x)=>s+((x.rooms||[]).length*(+x.nights||0)),0);
+  const blockRN=state.bookings.filter(x=>x.type==='block'&&!x.cancelled&&(x.date||'').slice(0,4)===state.year).reduce((s,x)=>s+((x.rooms||[]).length*(+x.nights||0)),0);
+  const _yy=+state.year,_isCur=_yy===new Date().getFullYear();
+  const _dTot=_isCur?(Math.round((new Date(today+'T00:00')-new Date(_yy+'-01-01T00:00'))/86400000)+1):((((_yy%4===0)&&(_yy%100!==0))||(_yy%400===0))?366:365);
+  const availRN=Math.max(1,ROOMS.length*_dTot-blockRN);
+  const adr=soldRN>0?tot/soldRN:0,revpar=tot/availRN,occY=Math.round(soldRN/availRN*100);
   document.getElementById('dashKpis').innerHTML=`
     <div class="kpi wide"><div class="v">${eur(tot)}</div><div class="l">Fatturato lordo ${state.year}</div></div>
     <div class="kpi"><div class="v" style="color:var(--ocra)">${eur(futI)}</div><div class="l">Incassi futuri</div></div>
     <div class="kpi"><div class="v ${utile>=0?'green':'red'}">${eur(utile)}</div><div class="l">Utile ante imposte</div></div>
     <div class="kpi"><div class="v">${b.length}</div><div class="l">Prenotazioni</div></div>
     <div class="kpi"><div class="v">${guests}</div><div class="l">Ospiti totali</div></div>
+    <div class="kpi"><div class="v">${eur(adr)}</div><div class="l">Prezzo medio a notte</div></div>
+    <div class="kpi"><div class="v">${eur(revpar)}</div><div class="l">Ricavo per camera disponibile</div></div>
+    <div class="kpi"><div class="v">${occY}%</div><div class="l">Occupazione ${_isCur?'da inizio anno':state.year}</div></div>
     <div class="kpi"><div class="v red">${eur(comm+sumup)}</div><div class="l">Commissioni+SumUp</div></div>
     <div class="kpi"><div class="v" style="color:var(--red)">${cancN}</div><div class="l">Cancellazioni</div></div>`;
   const byRoom=ROOMS.map(r=>({r,v:0}));
@@ -520,28 +533,84 @@ function renderNow(){
   const out=real.filter(b=>{const co=addDays(b.date,b.nights);return co===t||co===tm}).sort((a,b)=>addDays(a.date,a.nights).localeCompare(addDays(b.date,b.nights)));
   const arr=real.filter(b=>b.date>t&&b.date<=w).sort((a,b)=>a.date.localeCompare(b.date));
   const E='<div class="empty" style="padding:18px"><p style="font-size:13px">Nessuno</p></div>';
+  const tmwA=real.filter(b=>b.date===tm).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  document.getElementById('tmwStr').textContent=new Date(tm+'T00:00').toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('nowTmw').innerHTML=tmwA.length?tmwA.map(b=>{
+    const sg=SEGMAP[b.segment||'turista'];const sent=!!b.instrSent;
+    const ph=(b.phone||'').replace(/[^0-9 +]/g,'');
+    return `<div class="tmw">
+      <div class="n">${esc(b.name)||'\u2014'}</div>
+      <div class="s">\ud83d\udecf ${esc(roomNames(b).join(' + '))} \u00b7 ${b.nights} ${b.nights===1?'notte':'notti'} \u00b7 ${b.guests}p \u00b7 ${sg.i} ${sg.l}${b.channel?' \u00b7 '+esc(b.channel):''}</div>
+      ${b.needs?`<div class="s" style="color:var(--ocra)">\ud83c\udf7d\ufe0f ${esc(b.needs)}</div>`:''}
+      <span class="chip ${sent?'y':'n'}" onclick="toggleInstrSent('${b.id}')">${sent?'\ud83d\udd11 istruzioni inviate \u2713':'\ud83d\udd11 istruzioni da inviare'}</span>
+      <div class="a">
+        ${ph?`<button class="wa" onclick="waOpen('${ph}')">\ud83d\udcac WhatsApp</button>`:'<button class="dis" disabled>Nessun numero</button>'}
+        <button onclick="sendInstrFor('${b.id}')">\ud83d\udd11 ${sent?'Rinvia istruzioni':'Invia istruzioni'}</button>
+      </div>
+    </div>`;
+  }).join(''):'<div class="empty" style="padding:18px"><p style="font-size:13px">Nessun arrivo domani</p></div>';
   document.getElementById('nowPresent').innerHTML=present.length?present.map(b=>{let h=bkCard(b,'now');if(b.needs)h=`<div class="needsbox">🍽️ <b>${esc(b.name)}:</b> ${esc(b.needs)}</div>`+h;return h}).join(''):E;
   document.getElementById('nowOut').innerHTML=out.length?out.map(b=>bkCard(b,'out')).join(''):E;
   document.getElementById('nowIn').innerHTML=arr.length?arr.map(b=>bkCard(b)).join(''):E;
 }
 function calMove(n){state.cal.setMonth(state.cal.getMonth()+n);renderCal()}
+function calStats(y,m){
+  const dim=new Date(y,m+1,0).getDate();
+  let sold=0,blocked=0,beds=0,bedsAv=0;
+  for(let d=1;d<=dim;d++){
+    const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const o=dayOcc(iso);
+    ROOMS.forEach(r=>{
+      if(r==='Dormitorio'){
+        if(o.dormBlock)blocked++;
+        else{bedsAv+=DORM_BEDS;if(o.dorm>0){sold++;beds+=Math.min(o.dorm,DORM_MAX)}}
+      }else{
+        if(o.priv[r]==='block')blocked++;else if(o.priv[r])sold++;
+      }
+    });
+  }
+  const avail=ROOMS.length*dim-blocked;
+  const pct=avail>0?Math.round(sold/avail*100):0;
+  const bpct=bedsAv>0?Math.round(beds/bedsAv*100):0;
+  return {dim,sold,blocked,avail,pct,beds,bedsAv,bpct};
+}
+function renderCalStats(y,m){
+  const k=calStats(y,m);
+  const el=document.getElementById('calStats');
+  if(!el)return;
+  if(!k.sold&&!k.blocked){el.innerHTML=`<div class="cstat"><div class="sub" style="margin:0">Nessuna prenotazione in ${MONTHS_F[m]}.</div></div>`;return}
+  el.innerHTML=`<div class="cstat">
+    <div class="top"><span class="lb">Occupazione ${MONTHS_F[m]}</span><span class="pc">${k.pct}%</span></div>
+    <div class="tr"><div class="fl" style="width:${Math.min(100,k.pct)}%"></div></div>
+    <div class="sub"><b>${k.sold}</b> notti-camera vendute su <b>${k.avail}</b> disponibili${k.blocked?` · ${k.blocked} chiuse`:''}<br>🛏 Dormitorio: <b>${k.beds}</b> letti-notte su ${k.bedsAv} <span style="opacity:.7">(${k.bpct}%)</span></div>
+  </div>`;
+}
 function renderCal(){
   const y=state.cal.getFullYear(),m=state.cal.getMonth();
   document.getElementById('calMonth').textContent=MONTHS_F[m]+' '+y;
-  document.getElementById('calLeg').innerHTML=ROOMS.map(r=>`<span><span class="d" style="background:${ROOM_COLORS[r]}"></span>${r}</span>`).join('');
+  document.getElementById('calLeg').innerHTML=ROOMS.map(r=>`<span><span class="d" style="background:${ROOM_COLORS[r]}"></span>${r}</span>`).join('')+`<span><span class="d blk"></span>Chiuso</span>`;
   const first=new Date(y,m,1);let sd=(first.getDay()+6)%7;const dim=new Date(y,m+1,0).getDate();const t=todayISO();
   let html=WD.map(w=>`<div class="wd">${w}</div>`).join('');
   for(let i=0;i<sd;i++)html+='<div class="day empty"></div>';
   for(let d=1;d<=dim;d++){
     const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const o=dayOcc(iso);let st='';
-    if(o.priv['Mimì'])st+=`<div class="stripe" style="background:${ROOM_COLORS['Mimì']}"></div>`;
-    if(o.priv['Lina'])st+=`<div class="stripe" style="background:${ROOM_COLORS['Lina']}"></div>`;
-    if(o.dorm>0){const col=o.dorm>=DORM_MAX?DORM_C.over:(o.dorm>=DORM_BEDS?DORM_C.full:DORM_C.ok);st+=`<div class="stripe" style="background:${col}"></div>`}
-    if(o.priv['Suite'])st+=`<div class="stripe" style="background:${ROOM_COLORS['Suite']}"></div>`;
-    html+=`<div class="day${iso===t?' today':''}${iso===state.selDay&&iso!==t?' sel':''}" data-iso="${iso}" onclick="showCalDay('${iso}')"><div class="dn">${d}</div><div class="stripes">${st}</div></div>`;
+    ROOMS.forEach(r=>{
+      if(r==='Dormitorio'){
+        if(o.dormBlock)st+='<div class="stripe blk"></div>';
+        else if(o.dorm>0)st+=`<div class="stripe" style="background:${dormCol(o.dorm)}"></div>`;
+        else st+='<div class="stripe free"></div>';
+      }else{
+        if(o.priv[r]==='block')st+='<div class="stripe blk"></div>';
+        else if(o.priv[r])st+=`<div class="stripe" style="background:${ROOM_COLORS[r]}"></div>`;
+        else st+='<div class="stripe free"></div>';
+      }
+    });
+    const _cl=ROOMS.every(r=>r==='Dormitorio'?o.dormBlock:o.priv[r]==='block');
+    const _db=(!o.dormBlock&&o.dorm>0)?`<div class="dbeds" style="color:${dormCol(o.dorm)}">${o.dorm}/${DORM_BEDS}</div>`:'';
+    html+=`<div class="day${iso===t?' today':''}${iso===state.selDay&&iso!==t?' sel':''}${_cl?' closed':''}" data-iso="${iso}"${_cl?' title="Struttura chiusa"':''} onclick="showCalDay('${iso}')"><div class="dn">${d}</div>${_db}<div class="stripes">${st}</div></div>`;
   }
-  document.getElementById('calGrid').innerHTML=html;document.getElementById('calDay').innerHTML='';
+  document.getElementById('calGrid').innerHTML=html;document.getElementById('calDay').innerHTML='';renderCalStats(y,m);
 }
 function showCalDay(iso){state.selDay=iso;document.querySelectorAll('#calGrid .day').forEach(function(el){el.classList.toggle('sel',el.getAttribute('data-iso')===iso&&!el.classList.contains('today'))});
   const o=dayOcc(iso);const here=state.bookings.filter(b=>covers(b,iso)&&!b.cancelled);const ar=state.bookings.filter(b=>b.date===iso&&b.type!=='block'&&!b.cancelled);
@@ -638,8 +707,23 @@ function openForm(id){
 function closeForm(){document.getElementById('modal').classList.remove('open')}
 function waOpen(p,text){p=(p||'').replace(/[^0-9]/g,'');if(!p){toast('Nessun numero');return}if(p.length<=10&&p.charAt(0)==='3')p='39'+p;var u='https://wa.me/'+p;if(text)u+='?text='+encodeURIComponent(text);window.open(u,'_blank')}
 function waGuest(){waOpen(document.getElementById('f-phone').value)}
-function instrUrl(){var base='https://www.aracoeli20.it';var rmap={'mimì':'mimi','mimi':'mimi','lina':'lina','dormitorio':'dormitorio','suite':'suite'};var rk=Object.keys(state.fRooms||{}).filter(function(r){return r&&r.toLowerCase()!=='block';});var links=rk.map(function(r){var slug=rmap[r.toLowerCase()]||r.toLowerCase();return {name:r,url:base+'/istruzioni-'+slug+'.html'};});if(links.length===0)return base+'/istruzioni.html';if(links.length===1)return links[0].url;return '\n'+links.map(function(l){return '\ud83d\udecf '+l.name+': '+l.url;}).join('\n');}function fillMsg(tpl,name,channel){var s=state.settings||DEFAULT_SETTINGS;return (tpl||'').replace(/{nome}/g,name||'').replace(/{google}/g,s.google||'').replace(/{trip}/g,s.trip||'').replace(/{ota}/g,channel||'la piattaforma').replace(/{linkIstr}/g,instrUrl())}
-function sendMsg(type){var s=state.settings||DEFAULT_SETTINGS;var phone=document.getElementById('f-phone').value;if(!(phone||'').replace(/[^0-9]/g,'')){toast('Aggiungi un numero');return}var name=(document.getElementById('f-name').value||'').trim();var channel=state.fChannel;var tpl;if(type==='welcome')tpl=s.welcome;else if(type==='instr'){tpl=s.instr}else{var ota=(channel==='Booking'||channel==='Airbnb'||channel==='Hostelworld');tpl=ota?s.ota:s.checkout}waOpen(phone,fillMsg(tpl,name,channel))}
+function instrUrl(bk){var base='https://www.aracoeli20.it';var rmap={'mimì':'mimi','mimi':'mimi','lina':'lina','dormitorio':'dormitorio','suite':'suite'};var rk=(bk?(bk.rooms||[]).map(function(x){return x.room}):Object.keys(state.fRooms||{})).filter(function(r){return r&&r.toLowerCase()!=='block';});var links=rk.map(function(r){var slug=rmap[r.toLowerCase()]||r.toLowerCase();return {name:r,url:base+'/istruzioni-'+slug+'.html'};});if(links.length===0)return base+'/istruzioni.html';if(links.length===1)return links[0].url;return '\n'+links.map(function(l){return '\ud83d\udecf '+l.name+': '+l.url;}).join('\n');}function fillMsg(tpl,name,channel,bk){var s=state.settings||DEFAULT_SETTINGS;return (tpl||'').replace(/{nome}/g,name||'').replace(/{google}/g,s.google||'').replace(/{trip}/g,s.trip||'').replace(/{ota}/g,channel||'la piattaforma').replace(/{linkIstr}/g,instrUrl(bk))}
+function sendMsg(type){var s=state.settings||DEFAULT_SETTINGS;var phone=document.getElementById('f-phone').value;if(!(phone||'').replace(/[^0-9]/g,'')){toast('Aggiungi un numero');return}var name=(document.getElementById('f-name').value||'').trim();var channel=state.fChannel;var tpl;if(type==='welcome')tpl=s.welcome;else if(type==='instr'){tpl=s.instr}else{var ota=(channel==='Booking'||channel==='Airbnb'||channel==='Hostelworld');tpl=ota?s.ota:s.checkout}waOpen(phone,fillMsg(tpl,name,channel));if(type==='instr'&&state.editId){var _b=state.bookings.find(function(x){return x.id===state.editId});if(_b){_b.instrSent=todayISO();persist()}}}
+function sendInstrFor(id){
+  var b=state.bookings.find(function(x){return x.id===id});
+  if(!b)return;
+  if(!(b.phone||'').replace(/[^0-9]/g,'')){toast('Nessun numero per '+(b.name||'questo ospite'));return}
+  var s=state.settings||DEFAULT_SETTINGS;
+  waOpen(b.phone,fillMsg(s.instr,(b.name||'').trim(),b.channel,b));
+  b.instrSent=todayISO();persist();renderNow();
+}
+function toggleInstrSent(id){
+  var b=state.bookings.find(function(x){return x.id===id});
+  if(!b)return;
+  b.instrSent=b.instrSent?'':todayISO();
+  persist();renderNow();
+  toast(b.instrSent?'Segnate come inviate':'Segnate come da inviare');
+}
 async function pickContact(){try{var c=await navigator.contacts.select(['name','tel'],{multiple:false});if(c&&c[0]){var t=(c[0].tel&&c[0].tel[0])||'';if(t)document.getElementById('f-phone').value=t;var n=(c[0].name&&c[0].name[0])||'';if(n&&!document.getElementById('f-name').value)document.getElementById('f-name').value=n;document.getElementById('msgBtns').style.display=document.getElementById('f-phone').value?'block':'none';toast('Contatto inserito')}}catch(e){toast('Selezione annullata')}}
 function saveSettings(){var g=function(id){return document.getElementById(id).value};state.settings={welcome:g('s-welcome'),checkout:g('s-checkout'),ota:g('s-ota'),instr:g('s-instr'),instrLink:g('s-instrlink').trim(),google:g('s-google').trim(),trip:g('s-trip').trim(),cleanPhone:g('s-cleanphone').trim()};persistS();toast('Messaggi salvati')}
 var CDOW=['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];function fmtClean(iso){var a=iso.split('-');var dt=new Date(+a[0],+a[1]-1,+a[2]);return CDOW[dt.getDay()]+' '+a[2]+'/'+a[1]}function cleaningData(days){var today=todayISO();var lim=addDays(today,days);var outs={},ins={};(state.bookings||[]).forEach(function(b){if(!b.date)return;if(b.cancelled)return;var co=addDays(b.date,b.nights||0);(b.rooms||[]).forEach(function(r){var rm=r.room;(ins[b.date]=ins[b.date]||{})[rm]=true;if(co>=today&&co<lim){(outs[co]=outs[co]||{})[rm]=true;}});});var res=[];Object.keys(outs).sort().forEach(function(d){var rooms=Object.keys(outs[d]).sort().map(function(rm){return {room:rm,turn:!!(ins[d]&&ins[d][rm])};});res.push({date:d,rooms:rooms});});return res;}function cleaningText(days){var data=cleaningData(days);if(!data.length)return 'Aracoeli 20 \u2014 Nessuna pulizia prevista nei prossimi '+days+' giorni.';var t='\ud83e\uddf9 Pulizie Aracoeli 20\n(prossimi '+days+' giorni)\n';data.forEach(function(g){t+='\n'+fmtClean(g.date)+'\n';g.rooms.forEach(function(r){t+='\u2022 '+r.room+(r.turn?' \u2014 nuovo arrivo in giornata \u26a1':'')+'\n';});});t+='\n\u26a1 = stessa camera con nuovo arrivo lo stesso giorno: pulire entro il primo pomeriggio.';return t;}function renderCleaning(){var el=document.getElementById('cleanPreview');if(!el)return;var data=cleaningData(14);if(!data.length){el.innerHTML='<div class="note">Nessuna pulizia prevista nei prossimi 14 giorni.</div>';return;}var h='';data.forEach(function(g){h+='<div style="margin:9px 0 2px;font-weight:600;color:var(--dark)">'+fmtClean(g.date)+'</div>';g.rooms.forEach(function(r){h+='<div style="font-size:14px;padding:1px 0">\u2022 '+r.room+(r.turn?' <span style="color:var(--ocra);font-weight:600">\u26a1 nuovo arrivo</span>':'')+'</div>';});});el.innerHTML=h;}function shareCleaning(){var s=state.settings||DEFAULT_SETTINGS;var txt=cleaningText(14);var p=(s.cleanPhone||'').replace(/[^0-9]/g,'');if(p){if(p.length<=10&&p.charAt(0)==='3')p='39'+p;window.open('https://wa.me/'+p+'?text='+encodeURIComponent(txt),'_blank');}else{window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');}}function renderSettings(){var s=state.settings||DEFAULT_SETTINGS;var set=function(id,v){var el=document.getElementById(id);if(el&&document.activeElement!==el)el.value=v};set('s-welcome',s.welcome||'');set('s-checkout',s.checkout||'');set('s-ota',s.ota||'');set('s-instr',s.instr||'');set('s-instrlink',s.instrLink||'');set('s-google',s.google||'');set('s-trip',s.trip||'');set('s-cleanphone',s.cleanPhone||'')}
@@ -748,7 +832,7 @@ async function deleteCln(){
 document.getElementById('clnModal').addEventListener('click',e=>{if(e.target.id==='clnModal')closeCln()});
 
 
-function exportCSV(){
+function exportCSV(){markBackupLater();
   const yr=state.year;
   const real=state.bookings.filter(b=>b.type!=='block'&&(b.date||'').slice(0,4)===yr&&!b.cancelled);
   const cancL=state.bookings.filter(b=>b.type!=='block'&&b.cancelled&&(b.date||'').slice(0,4)===yr).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
@@ -769,8 +853,11 @@ function exportCSV(){
   const NL=String.fromCharCode(10),BOM=String.fromCharCode(0xFEFF);
   dl(BOM+out.join(NL),'aracoeli20_'+yr+'.csv','text/csv');toast('Esportato '+yr+' con spese');
 }
-function exportJSON(){dl(JSON.stringify({app:'Aracoeli20',v:3,exported:new Date().toISOString(),bookings:state.bookings,expenses:state.expenses,cleaning:state.cleaning},null,2),'aracoeli20_backup.json','application/json');toast('Backup esportato')}
-function importJSON(inp){const file=inp.files[0];if(!file)return;const r=new FileReader();r.onload=async()=>{try{const d=JSON.parse(r.result);const imp=Array.isArray(d)?d:d.bookings;if(!Array.isArray(imp))throw 0;if(!confirm(`Importare ${imp.length} voci? Sostituiranno i dati attuali.`)){inp.value='';return}state.bookings=imp.map(b=>({id:b.id||uid(),type:b.type||'p',name:b.name||'',date:b.date,nights:+b.nights||1,rooms:b.rooms||(b.room?[{room:b.room,amount:+b.amount||0}]:[]),guests:+b.guests||((+b.guestsC||0)+(+b.guestsD||0)),segment:b.segment||((+b.guestsD>0)?'pellegrino':'turista'),receipt:b.receipt||'nessuna',channel:b.channel||'Diretto',commission:+b.commission||0,payment:b.payment||'Contanti',sumup:+b.sumup||0,acconto:+b.acconto||0,regPol:(typeof b.regPol==='string'?b.regPol:(b.regPol?'si':'no')),regDMS:!!b.regDMS,phone:b.phone||'',needs:b.needs||'',notes:b.notes||'',cancelled:!!b.cancelled,cancelledAt:b.cancelledAt||''}));if(d.expenses)state.expenses=d.expenses;if(d.cleaning)state.cleaning=d.cleaning;await persist();await persistE();await persistC();buildYears();render();toast('Backup importato')}catch(e){toast('File non valido')}inp.value=''};r.readAsText(file)}
+function exportJSON(){var d=new Date();var nm='aracoeli20_backup_'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'.json';dl(JSON.stringify({app:'Aracoeli20',v:4,exported:d.toISOString(),bookings:state.bookings,expenses:state.expenses,cleaning:state.cleaning,settings:state.settings},null,2),nm,'application/json');markBackup();toast('Backup esportato')}
+function markBackupLater(){setTimeout(markBackup,300)}
+function markBackup(){try{localStorage.setItem('a20_lastBackup',new Date().toISOString())}catch(e){}renderBackupStatus()}
+function renderBackupStatus(){var el=document.getElementById('bkStatus');if(!el)return;var v='';try{v=localStorage.getItem('a20_lastBackup')||''}catch(e){}if(!v){el.innerHTML='<div class="note" style="background:#F7E3D8;color:#8A4B2A;margin-bottom:9px"><b>\u26a0\ufe0f Nessun backup mai eseguito su questo dispositivo.</b><br>Scaricane uno adesso: bastano due secondi.</div>';return}var gg=Math.floor((Date.now()-new Date(v).getTime())/86400000);var dd=new Date(v).toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'});if(gg>=30)el.innerHTML='<div class="note" style="background:#F7E3D8;color:#8A4B2A;margin-bottom:9px"><b>Ultimo backup: '+gg+' giorni fa</b> ('+dd+').<br>\u00c8 passato pi\u00f9 di un mese: conviene rifarlo.</div>';else el.innerHTML='<div class="note" style="margin-bottom:9px">Ultimo backup: <b>'+(gg===0?'oggi':(gg===1?'ieri':gg+' giorni fa'))+'</b> \u00b7 '+dd+'</div>';}
+function importJSON(inp){const file=inp.files[0];if(!file)return;const r=new FileReader();r.onload=async()=>{try{const d=JSON.parse(r.result);const imp=Array.isArray(d)?d:d.bookings;if(!Array.isArray(imp))throw 0;if(!confirm(`Importare ${imp.length} voci? Sostituiranno i dati attuali.`)){inp.value='';return}state.bookings=imp.map(b=>({id:b.id||uid(),type:b.type||'p',name:b.name||'',date:b.date,nights:+b.nights||1,rooms:b.rooms||(b.room?[{room:b.room,amount:+b.amount||0}]:[]),guests:+b.guests||((+b.guestsC||0)+(+b.guestsD||0)),segment:b.segment||((+b.guestsD>0)?'pellegrino':'turista'),receipt:b.receipt||'nessuna',channel:b.channel||'Diretto',commission:+b.commission||0,payment:b.payment||'Contanti',sumup:+b.sumup||0,acconto:+b.acconto||0,regPol:(typeof b.regPol==='string'?b.regPol:(b.regPol?'si':'no')),regDMS:!!b.regDMS,phone:b.phone||'',needs:b.needs||'',notes:b.notes||'',cancelled:!!b.cancelled,cancelledAt:b.cancelledAt||''}));if(d.expenses)state.expenses=d.expenses;if(d.cleaning)state.cleaning=d.cleaning;if(d.settings){state.settings=Object.assign({},DEFAULT_SETTINGS,d.settings);await persistS()}await persist();await persistE();await persistC();buildYears();render();toast('Backup importato')}catch(e){toast('File non valido')}inp.value=''};r.readAsText(file)}
 function dl(c,name,type){const b=new Blob([c],{type});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeForm()});
 document.getElementById('expModal').addEventListener('click',e=>{if(e.target.id==='expModal')closeExp()});
