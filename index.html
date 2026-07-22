@@ -238,6 +238,7 @@ main{flex:1;padding:16px 14px 92px;overflow-y:auto}
     <div class="view" id="v-clean">
       <button class="btn ghost" style="width:auto;padding:8px 16px;margin-bottom:12px;font-size:14px" onclick="nav('more')">‹ Altro</button>
       <div class="section-t">🧹 Compenso pulizie</div>
+      <div id="clnDueCard"></div>
       <div class="cal-nav"><button onclick="clnMove(-1)">‹</button><div class="mo" id="clnMonth"></div><button onclick="clnMove(1)">›</button></div>
       <div class="kpis">
         <div class="kpi wide"><div class="v" id="clnTotV">€ 0,00</div><div class="l" id="clnTotL">Da pagare</div></div>
@@ -764,6 +765,11 @@ async function persistC(){if(currentUid){try{await docRef().set({cleaning:JSON.s
 function clnMins(t){if(!t)return null;var p=t.split(':');return (+p[0])*60+(+p[1])}
 function clnHoursOf(e){var a=clnMins(e.start),b=clnMins(e.end);if(a==null||b==null)return 0;var d=b-a;if(d<0)d+=1440;return d/60}
 function clnCostOf(e){return clnHoursOf(e)*(+e.rate||0)*(+e.workers||1)}
+function clnDueList(){var t=todayISO();return (state.cleaning||[]).filter(function(e){return !e.paid&&(e.date||'')<=t})}
+function clnDueTotal(){return clnDueList().reduce(function(s,e){return s+clnCostOf(e)},0)}
+function clnLastPay(){var ps=(state.cleaning||[]).filter(function(e){return e.paid&&e.paidAt}).map(function(e){return e.paidAt}).sort();return ps.length?ps[ps.length-1]:''}
+function markCleaningPaid(){var l=clnDueList();if(!l.length){toast('Niente da saldare');return}var tot=clnDueTotal();if(!confirm('Confermi il pagamento di '+eur2(tot)+' all\'addetto?\n\nI '+l.length+' turni in sospeso vengono segnati come pagati e il conteggio riparte da zero.'))return;var t=todayISO();var ids={};l.forEach(function(e){ids[e.id]=1});state.cleaning.forEach(function(e){if(ids[e.id]){e.paid=true;e.paidAt=t}});persistC();render();toast('Pagato '+eur2(tot)+' \u00b7 conteggio azzerato')}
+function toggleClnDayPaid(ds){var turns=(state.cleaning||[]).filter(function(e){return e.date===ds});if(!turns.length)return;var anyUnpaid=turns.some(function(e){return !e.paid});var t=todayISO();state.cleaning.forEach(function(e){if(e.date===ds){e.paid=anyUnpaid;e.paidAt=anyUnpaid?t:''}});persistC();render();toast(anyUnpaid?'Giornata segnata come pagata':'Giornata riaperta')}
 function eur2(n){return '\u20ac '+(Math.round((n||0)*100)/100).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function fmtHours(h){var v=Math.round((h||0)*100)/100;return (Number.isInteger(v)?String(v):v.toString().replace('.',','))+' h'}
 function clnMonthKey(){var d=state.clnMonth;return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
@@ -772,12 +778,17 @@ function lastRate(){var arr=(state.cleaning||[]).slice().sort((a,b)=>(b.date||''
 function renderClean(){
   var mk=clnMonthKey();var d=state.clnMonth;
   var mlab=document.getElementById('clnMonth');if(mlab)mlab.textContent=MONTHS_F[d.getMonth()]+' '+d.getFullYear();
+  var _dueEl=document.getElementById('clnDueCard');
+  if(_dueEl){var due=clnDueTotal(),dueN=clnDueList().length,lp=clnLastPay();
+    var lpTxt=lp?('<div style="font-size:11.5px;color:var(--grey);margin-top:9px">Ultimo pagamento: <b>'+new Date(lp+'T00:00').toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'})+'</b></div>'):'';
+    if(due>0)_dueEl.innerHTML='<div class="cstat" style="border-left:3px solid var(--ocra);background:#FBF3E8"><div class="top"><span class="lb">Da saldare all\'addetto</span><span class="pc" style="color:var(--ocra)">'+eur2(due)+'</span></div><div class="sub" style="margin-top:2px">'+dueN+' turn'+(dueN===1?'o non ancora pagato':'i non ancora pagati')+' \u00b7 tutti i mesi</div><button class="btn" style="margin-top:11px" onclick="markCleaningPaid()">\ud83d\udcb0 Segna come pagato \u2014 azzera</button>'+lpTxt+'</div>';
+    else _dueEl.innerHTML='<div class="cstat"><div class="sub" style="margin:0"><b>\u2705 Tutto saldato.</b> Nessun turno in sospeso.</div>'+lpTxt+'</div>';}
   var list=(state.cleaning||[]).filter(e=>(e.date||'').slice(0,7)===mk);
   var totCost=0,totH=0,byDay={};
   list.forEach(e=>{totCost+=clnCostOf(e);totH+=clnHoursOf(e);(byDay[e.date]=byDay[e.date]||[]).push(e)});
   var elT=document.getElementById('clnTotV');if(!elT)return;
   elT.textContent=eur2(totCost);
-  document.getElementById('clnTotL').textContent='Da pagare \u00b7 '+MONTHS[d.getMonth()];
+  document.getElementById('clnTotL').textContent='Totale \u00b7 '+MONTHS[d.getMonth()];
   document.getElementById('clnHours').textContent=fmtHours(totH);
   document.getElementById('clnDays').textContent=Object.keys(byDay).length;
   var box=document.getElementById('clnList');
@@ -787,12 +798,14 @@ function renderClean(){
     var turns=byDay[ds].slice().sort((a,b)=>a.start.localeCompare(b.start));
     var dc=turns.reduce((s,e)=>s+clnCostOf(e),0);
     var dt=new Date(ds+'T00:00');
-    var head=`<div style="display:flex;justify-content:space-between;align-items:baseline;margin:15px 2px 7px"><div style="font-weight:600;color:var(--dark);font-size:13px">${WD[(dt.getDay()+6)%7]} ${dt.getDate()} ${MONTHS[dt.getMonth()]}</div><div style="font-weight:700;color:var(--ocra);font-size:13.5px">${eur2(dc)}</div></div>`;
+    var _dp=turns.every(e=>e.paid);
+    var _badge=`<span onclick="event.stopPropagation();toggleClnDayPaid('${ds}')" style="cursor:pointer;font-size:9px;font-weight:700;padding:3px 8px;border-radius:9px;${_dp?'background:#DDF0E4;color:#2C6B45':'background:#FBE5C8;color:#9A6B1A'}">${_dp?'\u2713 pagato':'da pagare'}</span>`;
+    var head=`<div style="display:flex;justify-content:space-between;align-items:center;margin:15px 2px 7px"><div style="font-weight:600;color:var(--dark);font-size:13px">${WD[(dt.getDay()+6)%7]} ${dt.getDate()} ${MONTHS[dt.getMonth()]}</div><div style="display:flex;gap:8px;align-items:center">${_badge}<div style="font-weight:700;color:var(--ocra);font-size:13.5px">${eur2(dc)}</div></div></div>`;
     var cards=turns.map(e=>{
       var h=clnHoursOf(e),c=clnCostOf(e);
       var wtag=(+e.workers>1)?`<span class="tag" style="background:#4C8C7D22;color:#4C8C7D">${e.workers} addetti</span>`:'';
       var etag=e.addExp?`<span class="tag" style="background:#EDE3D2;color:var(--ocra)">in spese</span>`:'';
-      return `<div class="bk" style="margin-bottom:7px" onclick="openCln('${e.id}')"><div class="bk-main"><div class="bk-name">\ud83d\udd50 ${e.start}\u2013${e.end} \u00b7 ${fmtHours(h)}</div><div class="bk-meta">${wtag}${etag}<span style="color:var(--grey)">${eur2(+e.rate||0)}/h</span></div></div><div class="bk-amt"><div class="a">${eur2(c)}</div></div></div>`;
+      return `<div class="bk" style="margin-bottom:7px${e.paid?';opacity:.6':''}" onclick="openCln('${e.id}')"><div class="bk-main"><div class="bk-name">\ud83d\udd50 ${e.start}\u2013${e.end} \u00b7 ${fmtHours(h)}</div><div class="bk-meta">${e.paid?'<span class="tag" style="background:#DDF0E4;color:#2C6B45">✓ pagato</span>':''}${wtag}${etag}<span style="color:var(--grey)">${eur2(+e.rate||0)}/h</span></div></div><div class="bk-amt"><div class="a">${eur2(c)}</div></div></div>`;
     }).join('');
     return head+cards;
   }).join('');
@@ -817,7 +830,7 @@ async function saveCln(){
   if(!date){toast('Inserisci la data');return}
   if(!start||!end){toast('Inserisci ora inizio e fine');return}
   var workers=Math.max(1,Math.round(+f('c-workers').value||1));var rate=+f('c-rate').value||0;
-  var e={id:state.clnEditId||uid(),date:date,start:start,end:end,workers:workers,rate:rate,addExp:!!state.clnAddExp};
+  var _cp=state.clnEditId?state.cleaning.find(function(x){return x.id===state.clnEditId}):null;var e={id:state.clnEditId||uid(),date:date,start:start,end:end,workers:workers,rate:rate,addExp:!!state.clnAddExp,paid:_cp?!!_cp.paid:false,paidAt:_cp?(_cp.paidAt||''):''};
   if(clnHoursOf(e)<=0){if(!confirm('La durata risulta 0 ore. Salvare comunque?'))return}
   if(state.clnEditId){var idx=state.cleaning.findIndex(x=>x.id===state.clnEditId);state.cleaning[idx]=e}else{state.cleaning.push(e)}
   syncClnExp(e);
@@ -858,7 +871,7 @@ function exportJSON(){var d=new Date();var nm='aracoeli20_backup_'+d.getFullYear
 function markBackupLater(){setTimeout(markBackup,300)}
 function markBackup(){try{localStorage.setItem('a20_lastBackup',new Date().toISOString())}catch(e){}renderBackupStatus()}
 function renderBackupStatus(){var el=document.getElementById('bkStatus');if(!el)return;var v='';try{v=localStorage.getItem('a20_lastBackup')||''}catch(e){}if(!v){el.innerHTML='<div class="note" style="background:#F7E3D8;color:#8A4B2A;margin-bottom:9px"><b>\u26a0\ufe0f Nessun backup mai eseguito su questo dispositivo.</b><br>Scaricane uno adesso: bastano due secondi.</div>';return}var gg=Math.floor((Date.now()-new Date(v).getTime())/86400000);var dd=new Date(v).toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'});if(gg>=30)el.innerHTML='<div class="note" style="background:#F7E3D8;color:#8A4B2A;margin-bottom:9px"><b>Ultimo backup: '+gg+' giorni fa</b> ('+dd+').<br>\u00c8 passato pi\u00f9 di un mese: conviene rifarlo.</div>';else el.innerHTML='<div class="note" style="margin-bottom:9px">Ultimo backup: <b>'+(gg===0?'oggi':(gg===1?'ieri':gg+' giorni fa'))+'</b> \u00b7 '+dd+'</div>';}
-function importJSON(inp){const file=inp.files[0];if(!file)return;const r=new FileReader();r.onload=async()=>{try{const d=JSON.parse(r.result);const imp=Array.isArray(d)?d:d.bookings;if(!Array.isArray(imp))throw 0;if(!confirm(`Importare ${imp.length} voci? Sostituiranno i dati attuali.`)){inp.value='';return}state.bookings=imp.map(b=>({id:b.id||uid(),type:b.type||'p',name:b.name||'',date:b.date,nights:+b.nights||1,rooms:b.rooms||(b.room?[{room:b.room,amount:+b.amount||0}]:[]),guests:+b.guests||((+b.guestsC||0)+(+b.guestsD||0)),dormGuests:(b.dormGuests==null?null:+b.dormGuests),segment:b.segment||((+b.guestsD>0)?'pellegrino':'turista'),receipt:b.receipt||'nessuna',channel:b.channel||'Diretto',commission:+b.commission||0,payment:b.payment||'Contanti',sumup:+b.sumup||0,acconto:+b.acconto||0,regPol:(typeof b.regPol==='string'?b.regPol:(b.regPol?'si':'no')),regDMS:!!b.regDMS,phone:b.phone||'',needs:b.needs||'',notes:b.notes||'',cancelled:!!b.cancelled,cancelledAt:b.cancelledAt||''}));if(d.expenses)state.expenses=d.expenses;if(d.cleaning)state.cleaning=d.cleaning;if(d.settings){state.settings=Object.assign({},DEFAULT_SETTINGS,d.settings);await persistS()}await persist();await persistE();await persistC();buildYears();render();toast('Backup importato')}catch(e){toast('File non valido')}inp.value=''};r.readAsText(file)}
+function importJSON(inp){const file=inp.files[0];if(!file)return;const r=new FileReader();r.onload=async()=>{try{const d=JSON.parse(r.result);const imp=Array.isArray(d)?d:d.bookings;if(!Array.isArray(imp))throw 0;if(!confirm(`Importare ${imp.length} voci? Sostituiranno i dati attuali.`)){inp.value='';return}state.bookings=imp.map(b=>({id:b.id||uid(),type:b.type||'p',name:b.name||'',date:b.date,nights:+b.nights||1,rooms:b.rooms||(b.room?[{room:b.room,amount:+b.amount||0}]:[]),guests:+b.guests||((+b.guestsC||0)+(+b.guestsD||0)),dormGuests:(b.dormGuests==null?null:+b.dormGuests),segment:b.segment||((+b.guestsD>0)?'pellegrino':'turista'),receipt:b.receipt||'nessuna',channel:b.channel||'Diretto',commission:+b.commission||0,payment:b.payment||'Contanti',sumup:+b.sumup||0,acconto:+b.acconto||0,regPol:(typeof b.regPol==='string'?b.regPol:(b.regPol?'si':'no')),regDMS:!!b.regDMS,phone:b.phone||'',needs:b.needs||'',notes:b.notes||'',cancelled:!!b.cancelled,cancelledAt:b.cancelledAt||''}));if(d.expenses)state.expenses=d.expenses;if(d.cleaning)state.cleaning=d.cleaning.map(function(e){return Object.assign({paid:!!e.paid,paidAt:e.paidAt||''},e)});if(d.settings){state.settings=Object.assign({},DEFAULT_SETTINGS,d.settings);await persistS()}await persist();await persistE();await persistC();buildYears();render();toast('Backup importato')}catch(e){toast('File non valido')}inp.value=''};r.readAsText(file)}
 function dl(c,name,type){const b=new Blob([c],{type});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeForm()});
 document.getElementById('expModal').addEventListener('click',e=>{if(e.target.id==='expModal')closeExp()});
