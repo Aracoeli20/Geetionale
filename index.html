@@ -95,7 +95,7 @@ main{flex:1;padding:16px 14px 92px;overflow-y:auto}
 .chip{flex:1;min-width:fit-content;text-align:center;background:#fff;border:1px solid var(--line);border-radius:11px;padding:10px 6px;font-size:13px;font-weight:500;color:var(--grey)}
 .chip.on{background:var(--dark);color:#fff;border-color:var(--dark)}
 .chips-seg .chip{flex:1 1 44%;font-size:12.5px}
-.ecat{display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 13px;margin-bottom:7px;cursor:pointer}.ecat .ar{font-size:10px;color:var(--grey);width:10px;transition:transform .15s}.ecat.op .ar{transform:rotate(90deg)}.ecat .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}.ecat .nm{flex:1;font-weight:600;font-size:14px;color:var(--dark)}.ecat .cn{font-size:11px;color:var(--grey);margin-left:4px;font-weight:400}.ecat .am{font-weight:700;font-size:14px;color:var(--red)}.ebar{height:3px;border-radius:2px;background:var(--salvia);margin:-4px 2px 8px;overflow:hidden}.ebar i{display:block;height:100%;border-radius:2px}.esub{margin:0 0 8px 14px;padding-left:10px;border-left:2px solid var(--line)}.roomprice{display:flex;align-items:center;gap:10px;margin-top:8px}
+.ecat{display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 13px;margin-bottom:7px;cursor:pointer}.ecat .ar{font-size:10px;color:var(--grey);width:10px;transition:transform .15s}.ecat.op .ar{transform:rotate(90deg)}.ecat .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}.ecat .nm{flex:1;font-weight:600;font-size:14px;color:var(--dark)}.ecat .cn{font-size:11px;color:var(--grey);margin-left:4px;font-weight:400}.ecat .am{font-weight:700;font-size:14px;color:var(--red)}.ebar{height:3px;border-radius:2px;background:var(--salvia);margin:-4px 2px 8px;overflow:hidden}.ebar i{display:block;height:100%;border-radius:2px}.esub{margin:0 0 8px 14px;padding-left:10px;border-left:2px solid var(--line)}.esubh{display:flex;align-items:center;gap:8px;padding:9px 11px;background:var(--salvia);border-radius:10px;margin-bottom:6px;cursor:pointer}.esubh .ar{font-size:9px;color:var(--grey);width:9px;transition:transform .15s}.esubh.op .ar{transform:rotate(90deg)}.esubh .nm{flex:1;font-weight:600;font-size:13px;color:var(--dark)}.esubh .cn{font-size:10.5px;color:var(--grey);font-weight:400;margin-left:4px}.esubh .am{font-weight:700;font-size:13px;color:var(--red)}.roomprice{display:flex;align-items:center;gap:10px;margin-top:8px}
 .roomprice span{flex:1;font-size:13.5px;font-weight:500}.roomprice input{width:120px}
 .toggle{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid var(--line);border-radius:11px;padding:11px 13px}
 .toggle span{font-size:13.5px;font-weight:500}
@@ -297,6 +297,7 @@ main{flex:1;padding:16px 14px 92px;overflow-y:auto}
   <div class="sheet-hdr"><h2 id="expTitle">Nuova spesa</h2><button class="x" onclick="closeExp()">✕</button></div>
   <div class="form">
     <div class="fg"><label>Categoria</label><div class="chips" id="e-cat"></div></div>
+    <div class="fg" id="e-sub-row" style="display:none"><label>Tipo di bolletta</label><div class="chips" id="e-sub"></div></div>
     <div class="fg"><label>Descrizione</label><input id="e-desc" type="text" placeholder="Es. Bolletta luce gen-feb"></div>
     <div class="frow"><div class="fg"><label>Data</label><input id="e-date" type="date"></div><div class="fg"><label>Importo €</label><input id="e-amount" type="number" min="0" step="0.01" placeholder="0,00"></div></div>
     <button class="btn" onclick="saveExp()">Salva spesa</button>
@@ -352,6 +353,17 @@ const SEGMAP=Object.fromEntries(SEGMENTS.map(s=>[s.k,s]));
 const RECEIPTS=[{k:'nessuna',l:'Nessuna',i:'—'},{k:'cartacea',l:'Cartacea',i:'🧾'},{k:'elettronica',l:'Elettronica',i:'📄'}];
 const RECC={nessuna:'#9AA08F',cartacea:'#D9A22B',elettronica:'#2F6DB0'};
 const ECATS=['Bollette','Alimentari','Commissioni','Manutenzione','Tasse','Pulizie','Varie'];
+const ESUBS={Bollette:['Luce','Gas','Acqua','Internet','Altro']};
+function detectSub(e){var d=(e.description||'').toUpperCase();
+  if((e.category||'')==='Bollette'){
+    if(/WIFI|INTERNET|FIBRA|WIND|VODAFONE/.test(d))return 'Internet';
+    if(/ACQUA|AQP/.test(d))return 'Acqua';
+    if(/GAS|METANO/.test(d))return 'Gas';
+    if(/ELET|LUCE|ENEL|ENERGIA|EDISON|CORRENTE/.test(d))return 'Luce';
+    return 'Altro';}
+  return (e.description||'').trim()||'Senza descrizione';}
+function expSub(e){return e.sub?e.sub:detectSub(e)}
+function subKeyOf(e){return expSub(e).toUpperCase().replace(/[^A-Z0-9]/g,'')||'X'}
 const ECAT_COL={Bollette:'#3A5A6E',Alimentari:'#3E6B43',Commissioni:'#B06E27',Manutenzione:'#A23B2E',Tasse:'#6E7063',Pulizie:'#4C8C7D',Varie:'#CD9A48'};
 const DEFAULT_SETTINGS={welcome:"Buongiorno {nome}! 😊 Benvenuto/a all'Aracoeli 20, nel cuore di Cassano delle Murge. Per l'ingresso, il parcheggio, la colazione o consigli sul Cammino e sul paese, scrivici pure qui. Buon arrivo! — Domenico e Maria Cristina",checkout:"Grazie {nome} per aver scelto l'Aracoeli 20, è stato un piacere ospitarti! 🙏 Se ti va di dedicarci due minuti, una recensione ci aiuta tantissimo. ⭐ Google: {google}   ⭐ TripAdvisor: {trip}   Buon proseguimento di viaggio! — Domenico e Maria Cristina",ota:"Grazie {nome} per aver soggiornato all'Aracoeli 20! 🙏 Se ti è piaciuto, ti sarebbe possibile lasciare una recensione su {ota} quando riceverai la loro email? Per noi conta moltissimo. Buon viaggio! — Domenico e Maria Cristina",instr:"Ciao {nome}! 🏡 Ecco come entrare all'Aracoeli 20:\n\n🔑 Codice portone: 1105#\nLe chiavi della camera sono sulla porta.\n📶 WiFi: Cassano2022!\n\n📸 Guida con foto e percorso: {linkIstr}\n\nPer qualsiasi dubbio siamo qui. A presto! — Domenico e Maria Cristina",instrLink:"https://www.aracoeli20.it/istruzioni.html",google:"https://search.google.com/local/writereview?placeid=ChIJ10x5x7yRRxMRWCbj18tLNo8",trip:"https://www.tripadvisor.com/Hotel_Review-g1204632-d28051456-Reviews-Aracoeli_20-Cassano_delle_Murge_Province_of_Bari_Puglia.html",cleanPhone:""};
 const ROOM_COLORS={'Mimì':'#2F6DB0','Lina':'#E08A2C','Dormitorio':'#38B24A','Suite':'#7B4DA0'};
@@ -629,6 +641,7 @@ function renderStorico(){
   document.getElementById('storicoTbl').innerHTML=`<tr><th>Anno</th><th>Mimì</th><th>Lina</th><th>Dorm.</th><th>Suite</th><th>Lordo</th><th>Osp.</th></tr>`+rows.map(r=>`<tr class="${r.y==='2023'?'peak':''}"><td>${r.y}</td><td>${k1(r.mimi)}</td><td>${k1(r.lina)}</td><td>${k1(r.dorm)}</td><td>${r.suite?k1(r.suite):'—'}</td><td><b>${k1(r.lordo)}</b></td><td>${r.osp}</td></tr>`).join('');
 }
 function toggleExpCat(c){state.expOpen=state.expOpen||{};state.expOpen[c]=!state.expOpen[c];renderExp()}
+function toggleExpSub(k){state.expSubOpen=state.expSubOpen||{};state.expSubOpen[k]=!state.expSubOpen[k];renderExp()}
 function renderExp(){
   const ey=state.expenses.filter(e=>e.date.slice(0,4)===state.year);
   const tot=ey.reduce((s,e)=>s+(+e.amount||0),0);
@@ -637,9 +650,9 @@ function renderExp(){
   document.getElementById('expN').textContent=ey.length;
   const box=document.getElementById('expList');
   if(!ey.length){box.innerHTML='<div class="empty" style="padding:20px"><p style="font-size:13px">Nessuna spesa per il '+state.year+'.</p></div>';return}
-  state.expOpen=state.expOpen||{};
-  const by={};ey.forEach(e=>{const c=e.category||'Varie';(by[c]=by[c]||[]).push(e)});
+  state.expOpen=state.expOpen||{};state.expSubOpen=state.expSubOpen||{};
   const sum=l=>l.reduce((s,e)=>s+(+e.amount||0),0);
+  const by={};ey.forEach(e=>{const c=e.category||'Varie';(by[c]=by[c]||[]).push(e)});
   const cats=Object.keys(by).sort((a,b)=>sum(by[b])-sum(by[a]));
   box.innerHTML=cats.map(c=>{
     const l=by[c].slice().sort((a,b)=>b.date.localeCompare(a.date));
@@ -648,10 +661,18 @@ function renderExp(){
     const head=`<div class="ecat${op?' op':''}" onclick="toggleExpCat('${c}')"><span class="ar">▶</span><span class="dot" style="background:${col}"></span><span class="nm">${c}<span class="cn">${l.length} voc${l.length===1?'e':'i'} · ${pct}%</span></span><span class="am">−${eur(ct)}</span></div>`;
     const bar=`<div class="ebar"><i style="width:${Math.max(2,pct)}%;background:${col}"></i></div>`;
     if(!op)return head+bar;
-    const items=l.map(e=>{const dt=new Date(e.date+'T00:00');
-      return `<div class="bk" style="margin-bottom:6px" onclick="openExp('${e.id}')"><div class="bk-date"><div class="d">${dt.getDate()}</div><div class="m">${MONTHS[dt.getMonth()]}</div></div><div class="bk-main"><div class="bk-name" style="font-size:14px">${esc(e.description)||c}</div></div><div class="bk-amt"><div class="a" style="color:var(--red)">−${eur(+e.amount)}</div></div></div>`;
+    const bs={};
+    l.forEach(e=>{const k=subKeyOf(e);if(!bs[k])bs[k]={name:expSub(e),items:[]};bs[k].items.push(e)});
+    const keys=Object.keys(bs).sort((a,b)=>sum(bs[b].items)-sum(bs[a].items));
+    const inner=keys.map(k=>{
+      const g=bs[k],st=sum(g.items),sk=c+'|'+k,so=!!state.expSubOpen[sk];
+      const sh=`<div class="esubh${so?' op':''}" onclick="toggleExpSub('${sk}')"><span class="ar">▶</span><span class="nm">${esc(g.name)}<span class="cn">${g.items.length}×</span></span><span class="am">−${eur(st)}</span></div>`;
+      if(!so)return sh;
+      return sh+g.items.map(e=>{const dt=new Date(e.date+'T00:00');
+        return `<div class="bk" style="margin:0 0 6px 8px" onclick="openExp('${e.id}')"><div class="bk-date"><div class="d">${dt.getDate()}</div><div class="m">${MONTHS[dt.getMonth()]}</div></div><div class="bk-main"><div class="bk-name" style="font-size:13.5px">${esc(e.description)||c}</div></div><div class="bk-amt"><div class="a" style="color:var(--red)">−${eur(+e.amount)}</div></div></div>`;
+      }).join('');
     }).join('');
-    return head+bar+`<div class="esub">${items}</div>`;
+    return head+bar+`<div class="esub">${inner}</div>`;
   }).join('');
 }
 
@@ -776,10 +797,17 @@ async function importCancSeed(){
 async function cancelBooking(){if(!state.editId)return;const i=state.bookings.findIndex(x=>x.id===state.editId);if(i<0)return;if(!confirm('Segnare come CANCELLATA DAL CLIENTE?\n\nResta nello storico come cancellazione, ma non conta piu\' in ricavi, ospiti, calendario e lista pulizie.'))return;state.bookings[i].cancelled=true;state.bookings[i].cancelledAt=todayISO();await persist();buildYears();render();closeForm();toast('Segnata come cancellata')}
 async function restoreBooking(){if(!state.editId)return;const i=state.bookings.findIndex(x=>x.id===state.editId);if(i<0)return;if(!confirm('Ripristinare questa prenotazione?\n\nTornera\' a contare in ricavi, ospiti e calendario.'))return;state.bookings[i].cancelled=false;state.bookings[i].cancelledAt='';await persist();buildYears();render();closeForm();toast('Prenotazione ripristinata')}
 
-function openExp(id){state.expEditId=(typeof id==='string')?id:null;document.getElementById('e-cat').innerHTML=ECATS.map(c=>`<div class="chip" data-e="${c}" onclick="pickECat('${c}')">${c}</div>`).join('');const f=x=>document.getElementById(x);if(state.expEditId){const e=state.expenses.find(x=>x.id===state.expEditId);document.getElementById('expTitle').textContent='Modifica spesa';f('e-desc').value=e.description||'';f('e-date').value=e.date;f('e-amount').value=e.amount||'';state.eCat=e.category;f('expDelBtn').style.display='block'}else{document.getElementById('expTitle').textContent='Nuova spesa';f('e-desc').value='';f('e-date').value=todayISO();f('e-amount').value='';state.eCat='Bollette';f('expDelBtn').style.display='none'}document.querySelectorAll('#e-cat .chip').forEach(c=>c.classList.toggle('on',c.dataset.e===state.eCat));document.getElementById('expModal').classList.add('open')}
-function pickECat(c){state.eCat=c;document.querySelectorAll('#e-cat .chip').forEach(x=>x.classList.toggle('on',x.dataset.e===c))}
+
+function openExp(id){state.expEditId=(typeof id==='string')?id:null;document.getElementById('e-cat').innerHTML=ECATS.map(c=>`<div class="chip" data-e="${c}" onclick="pickECat('${c}')">${c}</div>`).join('');const f=x=>document.getElementById(x);if(state.expEditId){const e=state.expenses.find(x=>x.id===state.expEditId);document.getElementById('expTitle').textContent='Modifica spesa';f('e-desc').value=e.description||'';f('e-date').value=e.date;f('e-amount').value=e.amount||'';state.eCat=e.category;state.eSub=(ESUBS[e.category]?expSub(e):'');f('expDelBtn').style.display='block'}else{document.getElementById('expTitle').textContent='Nuova spesa';f('e-desc').value='';f('e-date').value=todayISO();f('e-amount').value='';state.eCat='Bollette';state.eSub='';f('expDelBtn').style.display='none'}document.querySelectorAll('#e-cat .chip').forEach(c=>c.classList.toggle('on',c.dataset.e===state.eCat));renderESub();document.getElementById('expModal').classList.add('open')}
+function pickECat(c){state.eCat=c;document.querySelectorAll('#e-cat .chip').forEach(x=>x.classList.toggle('on',x.dataset.e===c));if(!(ESUBS[c]||[]).includes(state.eSub))state.eSub='';renderESub()}
+function pickESub(x){state.eSub=x;document.querySelectorAll('#e-sub .chip').forEach(c=>c.classList.toggle('on',c.dataset.s===x))}
+function renderESub(){var row=document.getElementById('e-sub-row');var subs=ESUBS[state.eCat];
+  if(!subs){row.style.display='none';return}
+  row.style.display='';
+  document.getElementById('e-sub').innerHTML=subs.map(function(x){return '<div class="chip" data-s="'+x+'" onclick="pickESub(\''+x+'\')">'+x+'</div>'}).join('');
+  document.querySelectorAll('#e-sub .chip').forEach(function(c){c.classList.toggle('on',c.dataset.s===state.eSub)})}
 function closeExp(){document.getElementById('expModal').classList.remove('open')}
-async function saveExp(){const f=x=>document.getElementById(x);const date=f('e-date').value;if(!date){toast('Inserisci la data');return}const rec={id:state.expEditId||uid(),category:state.eCat,description:f('e-desc').value.trim(),date,amount:+f('e-amount').value||0};if(state.expEditId){const i=state.expenses.findIndex(x=>x.id===state.expEditId);state.expenses[i]=rec}else state.expenses.push(rec);await persistE();render();closeExp();toast('Spesa salvata')}
+async function saveExp(){const f=x=>document.getElementById(x);const date=f('e-date').value;if(!date){toast('Inserisci la data');return}const rec={id:state.expEditId||uid(),category:state.eCat,sub:(ESUBS[state.eCat]?(state.eSub||''):''),description:f('e-desc').value.trim(),date,amount:+f('e-amount').value||0};if(state.expEditId){const i=state.expenses.findIndex(x=>x.id===state.expEditId);state.expenses[i]=rec}else state.expenses.push(rec);await persistE();render();closeExp();toast('Spesa salvata')}
 async function deleteExp(){if(!state.expEditId)return;if(!confirm('Eliminare questa spesa?'))return;state.expenses=state.expenses.filter(x=>x.id!==state.expEditId);await persistE();render();closeExp();toast('Eliminata')}
 /* ===== PULIZIE — compenso addetta (v10) ===== */
 async function persistC(){if(currentUid){try{await docRef().set({cleaning:JSON.stringify(state.cleaning),updated:Date.now()},{merge:true})}catch(e){toast('Errore salvataggio')}}}
