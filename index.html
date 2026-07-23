@@ -695,6 +695,7 @@ function renderCmp(){
 function setIncMode(m){state.incMode=m;renderInc()}
 function incDaysIn(y,mi){var yy=+y,now=new Date(),cy=now.getFullYear(),cm=now.getMonth();if(yy>cy)return 0;if(yy===cy){if(mi>cm)return 0;if(mi===cm)return now.getDate()}return new Date(yy,mi+1,0).getDate()}
 function incElapsed(y){var yy=+y,now=new Date(),cy=now.getFullYear();if(yy>cy)return 0;if(yy<cy)return((yy%4===0&&yy%100!==0)||yy%400===0)?366:365;return Math.round((new Date(now.getFullYear(),now.getMonth(),now.getDate())-new Date(yy,0,1))/86400000)+1}
+function incDoy(y){var n=new Date();return Math.round((new Date(+y,n.getMonth(),n.getDate())-new Date(+y,0,1))/86400000)+1}
 function incNightsOf(b,room){return room==='Dormitorio'?((dormGuestsOf(b)||1)*(+b.nights||0)):(+b.nights||0)}
 function incCut(y){var n=new Date();return String(y)+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')}
 function incCapTot(days){return (ROOMS.length-1)*days+DORM_BEDS*days}
@@ -724,7 +725,7 @@ function renderInc(){
   /* ---- fotografia YTD ---- */
   var ytdA=incAgg(state.year,incCut(state.year)),ytdB=incAgg(state.incCmp,incCut(state.incCmp));
   var gA=incGrand(ytdA),gB=incGrand(ytdB);
-  var dA=incElapsed(state.year),dB=incElapsed(state.incCmp);
+  var dA=incDoy(state.year),dB=incDoy(state.incCmp);
   var adrA=gA.nig>0?gA.rev/gA.nig:0,adrB=gB.nig>0?gB.rev/gB.nig:0;
   var occA=incCapTot(dA)>0?gA.nig/incCapTot(dA)*100:0,occB=incCapTot(dB)>0?gB.nig/incCapTot(dB)*100:0;
   var dstr=now.toLocaleDateString('it-IT',{day:'numeric',month:'long'});
