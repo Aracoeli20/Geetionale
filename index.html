@@ -60,6 +60,17 @@ main{flex:1;padding:16px 14px 92px;overflow-y:auto}
 .stbl td{padding:8px 7px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
 .stbl td:first-child{text-align:left;font-weight:600;color:var(--dark)}
 .stbl tr:last-child td{border-bottom:none}.stbl tr.peak td{background:#F3EDDF}
+.seg.seg4 button{font-size:11px;padding:9px 1px;letter-spacing:-.2px}
+.mtx{width:100%;border-collapse:collapse;font-size:11.5px;background:var(--card);border-radius:12px;overflow:hidden}
+.mtx th{background:var(--dark);color:#fff;padding:7px 4px;font-size:9px;text-transform:uppercase;font-weight:600;text-align:right;white-space:nowrap}
+.mtx th:first-child{text-align:left;padding-left:9px}
+.mtx td{padding:7px 4px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
+.mtx td:first-child{text-align:left;font-weight:600;color:var(--dark);padding-left:9px}
+.mtx td.z{color:#D8D2C4}
+.mtx td.tc{font-weight:600;background:#FAF7F0}
+.mtx tr.sum td{background:#F3EDDF;font-weight:600;border-bottom:none}
+.mtx tr.cur td:first-child{box-shadow:inset 3px 0 0 var(--ocra)}
+.rdot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:3px;vertical-align:middle}
 .cal-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .cal-nav button{background:var(--card);border:1px solid var(--line);border-radius:10px;width:38px;height:38px;font-size:18px;color:var(--dark)}
 .cal-nav .mo{font-family:var(--serif);font-size:18px;font-weight:600}
@@ -164,7 +175,7 @@ main{flex:1;padding:16px 14px 92px;overflow-y:auto}
       <div class="kpis" id="dashKpis"></div>
       <div class="panel"><h3>Ricavi per stanza</h3><div id="dashRooms"></div></div>
       <div class="panel"><h3>Tipologia ospiti</h3><div id="dashSeg"></div></div>
-      <div class="panel"><h3>Incasso per mese <span id="dashMonthsTot" style="font-weight:400;color:var(--grey);font-size:11px;text-transform:none;letter-spacing:0"></span></h3><div id="dashMonths"></div></div>
+      <div class="panel"><h3>Incasso per mese <span id="dashMonthsTot" style="font-weight:400;color:var(--grey);font-size:11px;text-transform:none;letter-spacing:0"></span></h3><div id="dashMonths"></div><button class="btn ghost" style="margin-top:11px;font-size:13.5px;padding:11px" onclick="nav('inc')">📊 Dettaglio per camera →</button></div>
       <div class="panel"><h3>🧹 Compenso pulizie per mese <span id="clnYearTot" style="font-weight:400;color:var(--grey);font-size:11px;text-transform:none;letter-spacing:0"></span></h3><div id="dashClean"></div></div>
       <div class="panel"><h3>Canali</h3><div id="dashChannels"></div></div>
       <div class="panel"><h3>Incassi per metodo <span style="font-weight:400;color:var(--grey);font-size:11px">· solo incassati</span></h3><div id="dashPay"></div></div>
@@ -229,11 +240,29 @@ main{flex:1;padding:16px 14px 92px;overflow-y:auto}
     </div>
     <div class="view" id="v-cmp">
       <div class="section-t">Confronto anni</div>
+      <button class="btn ghost" style="margin-bottom:14px;font-size:13.5px;padding:11px" onclick="nav('inc')">📊 Incassi per mese e camera →</button>
       <div class="frow" style="margin-bottom:14px">
         <div class="fg" style="margin-bottom:0"><label>Anno</label><select id="cmpA" onchange="state.cmpA=this.value;renderCmp()"></select></div>
         <div class="fg" style="margin-bottom:0"><label>Rispetto a</label><select id="cmpB" onchange="state.cmpB=this.value;renderCmp()"></select></div>
       </div>
       <div id="cmpBody"></div>
+    </div>
+    <div class="view" id="v-inc">
+      <button class="btn ghost" style="width:auto;padding:8px 16px;margin-bottom:12px;font-size:14px" onclick="nav('dash')">‹ Dashboard</button>
+      <div class="section-t">📊 Incassi per mese e camera</div>
+      <div class="frow" style="margin-bottom:12px">
+        <div class="fg" style="margin-bottom:0"><label>Anno</label><select id="incA" onchange="state.year=this.value;render();nav('inc')"></select></div>
+        <div class="fg" style="margin-bottom:0"><label>Confronta con</label><select id="incB" onchange="state.incCmp=this.value;renderInc()"></select></div>
+      </div>
+      <div class="seg seg4" id="incModeSeg">
+        <button class="on" data-m="eur" onclick="setIncMode('eur')">€ Incassi</button>
+        <button data-m="notti" onclick="setIncMode('notti')">Notti</button>
+        <button data-m="adr" onclick="setIncMode('adr')">Prezzo med.</button>
+        <button data-m="occ" onclick="setIncMode('occ')">Occup.</button>
+      </div>
+      <div id="incYtd"></div>
+      <div id="incBody"></div>
+      <button class="btn ghost row2" onclick="incCopy()">📋 Copia tabella</button>
     </div>
     <div class="view" id="v-clean">
       <button class="btn ghost" style="width:auto;padding:8px 16px;margin-bottom:12px;font-size:14px" onclick="nav('more')">‹ Altro</button>
@@ -373,7 +402,7 @@ const MONTHS=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov',
 const MONTHS_F=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
 const WD=['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
 let db,auth,currentUid=null,unsub=null;
-let state={bookings:[],expenses:[],year:String(new Date().getFullYear()),q:'',roomFilter:'',showPast:false,editId:null,fType:'p',fRooms:{},fSeg:'turista',fReceipt:'nessuna',fRegPol:'no',fChannel:'Diretto',fPay:'Contanti',eCat:'Bollette',expEditId:null,settings:{},selDay:null,cmpA:null,cmpB:null,cal:new Date(),view:'dash',cleaning:[],clnMonth:new Date(),clnEditId:null,clnAddExp:true,showCancelled:false};
+let state={bookings:[],expenses:[],year:String(new Date().getFullYear()),q:'',roomFilter:'',showPast:false,editId:null,fType:'p',fRooms:{},fSeg:'turista',fReceipt:'nessuna',fRegPol:'no',fChannel:'Diretto',fPay:'Contanti',eCat:'Bollette',expEditId:null,settings:{},selDay:null,cmpA:null,cmpB:null,cal:new Date(),view:'dash',cleaning:[],clnMonth:new Date(),clnEditId:null,clnAddExp:true,showCancelled:false,incMode:'eur',incCmp:null};
 const eur=n=>'€ '+(Math.round(n||0)).toLocaleString('it-IT');
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const k1=n=>(n/1000).toFixed(1)+'k';
@@ -402,7 +431,7 @@ async function persistE(){if(currentUid){try{await docRef().set({expenses:JSON.s
 async function persistS(){if(currentUid){try{await docRef().set({settings:JSON.stringify(state.settings),updated:Date.now()},{merge:true})}catch(e){toast('Errore salvataggio')}}}
 function buildYears(){const ys=new Set(state.bookings.map(b=>b.date.slice(0,4)));ys.add(String(new Date().getFullYear()));const arr=[...ys].sort().reverse();if(!arr.includes(state.year))state.year=arr[0];document.getElementById('yearSel').innerHTML=arr.map(y=>`<option value="${y}"${y===state.year?' selected':''}>${y}</option>`).join('')}
 function yb(){return state.bookings.filter(b=>b.date.slice(0,4)===state.year&&b.type!=='block'&&!b.cancelled)}
-function render(){renderDash();renderList();renderStorico();renderNow();renderCal();renderExp();renderCmp();renderClean();renderBackupStatus();document.getElementById('yearSel').value=state.year}
+function render(){renderDash();renderList();renderStorico();renderNow();renderCal();renderExp();renderCmp();renderInc();renderClean();renderBackupStatus();document.getElementById('yearSel').value=state.year}
 
 function renderDash(){
   const b=yb();
@@ -705,7 +734,105 @@ function renderCmp(){
   if(state.cmpA===state.cmpB)h+='<div class="note" style="margin-top:10px">Stai confrontando lo stesso anno: scegli due anni diversi nei menu in alto.</div>';
   body.innerHTML=h;
 }
-function nav(v){state.view=v;document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));document.getElementById('v-'+v).classList.add('active');var navV=(v==='clean')?'more':v;document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===navV));document.getElementById('fab').style.display=(v==='list'||v==='dash'||v==='now'||v==='cal')?'flex':'none';if(v==='cal')renderCal();if(v==='cmp')renderCmp();if(v==='more')renderSettings();if(v==='clean')renderClean();renderCleaning();window.scrollTo(0,0)}
+function setIncMode(m){state.incMode=m;renderInc()}
+function incDaysIn(y,mi){var yy=+y,now=new Date(),cy=now.getFullYear(),cm=now.getMonth();if(yy>cy)return 0;if(yy===cy){if(mi>cm)return 0;if(mi===cm)return now.getDate()}return new Date(yy,mi+1,0).getDate()}
+function incElapsed(y){var yy=+y,now=new Date(),cy=now.getFullYear();if(yy>cy)return 0;if(yy<cy)return((yy%4===0&&yy%100!==0)||yy%400===0)?366:365;return Math.round((new Date(now.getFullYear(),now.getMonth(),now.getDate())-new Date(yy,0,1))/86400000)+1}
+function incDoy(y){var n=new Date();return Math.round((new Date(+y,n.getMonth(),n.getDate())-new Date(+y,0,1))/86400000)+1}
+function incNightsOf(b,room){return room==='Dormitorio'?((dormGuestsOf(b)||1)*(+b.nights||0)):(+b.nights||0)}
+function incCut(y){var n=new Date();return String(y)+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')}
+function incCapTot(days){return (ROOMS.length-1)*days+DORM_BEDS*days}
+function incAgg(y,cut){var rev={},nig={};ROOMS.forEach(function(r){rev[r]=[];nig[r]=[];for(var i=0;i<12;i++){rev[r].push(0);nig[r].push(0)}});
+  state.bookings.forEach(function(b){if(!b.date||b.type==='block'||b.cancelled)return;if(b.date.slice(0,4)!==String(y))return;if(cut&&b.date>cut)return;var mi=+b.date.slice(5,7)-1;if(mi<0||mi>11)return;
+    (b.rooms||[]).forEach(function(rm){if(!rev[rm.room])return;rev[rm.room][mi]+=(+rm.amount||0);nig[rm.room][mi]+=incNightsOf(b,rm.room)})});
+  return {rev:rev,nig:nig}}
+function incRoomTot(a,r){var o={rev:0,nig:0};for(var i=0;i<12;i++){o.rev+=a.rev[r][i];o.nig+=a.nig[r][i]}return o}
+function incGrand(a){var o={rev:0,nig:0};ROOMS.forEach(function(r){var t=incRoomTot(a,r);o.rev+=t.rev;o.nig+=t.nig});return o}
+function incVal(mode,rev,nig,days,room){if(mode==='eur')return rev;if(mode==='notti')return nig;if(mode==='adr')return nig>0?rev/nig:0;var cap=(room==='__tot')?incCapTot(days):((room==='Dormitorio'?DORM_BEDS:1)*days);return cap>0?nig/cap*100:0}
+function incTxt(mode,v){if(!v)return '';if(mode==='eur'||mode==='adr')return eur(v);if(mode==='notti')return String(Math.round(v));return Math.round(v)+'%'}
+function incDelta(x,y,dk){var mu=dk?'#9AA3B8':'var(--grey)';if(!y)return '<span style="color:'+mu+'">\u2014</span>';var p=(x-y)/Math.abs(y)*100;if(Math.abs(p)<0.05)return '<span style="color:'+mu+'">0%</span>';var col=p>0?(dk?'#7BC48D':'var(--green)'):(dk?'#EE9E8F':'var(--red)');return '<span style="color:'+col+';font-weight:600">'+(p>0?'\u25b2 +':'\u25bc ')+p.toFixed(1)+'%</span>'}
+function renderInc(){
+  var body=document.getElementById('incBody');if(!body)return;
+  var yrs=Array.from(new Set(state.bookings.filter(function(b){return b.type!=='block'&&b.date}).map(function(b){return b.date.slice(0,4)}))).sort().reverse();
+  if(yrs.indexOf(state.year)<0)yrs.unshift(state.year);
+  if(!state.incMode)state.incMode='eur';
+  if(!state.incCmp||yrs.indexOf(state.incCmp)<0){var alt=yrs.filter(function(y){return y!==state.year});state.incCmp=alt[0]||state.year}
+  var sa=document.getElementById('incA'),sb=document.getElementById('incB');
+  if(sa)sa.innerHTML=yrs.map(function(y){return '<option value="'+y+'"'+(y===state.year?' selected':'')+'>'+y+'</option>'}).join('');
+  if(sb)sb.innerHTML=yrs.map(function(y){return '<option value="'+y+'"'+(y===state.incCmp?' selected':'')+'>'+y+'</option>'}).join('');
+  var seg=document.getElementById('incModeSeg');
+  if(seg)Array.prototype.forEach.call(seg.querySelectorAll('button'),function(b){b.classList.toggle('on',b.getAttribute('data-m')===state.incMode)});
+  var mode=state.incMode,A=incAgg(state.year),B=incAgg(state.incCmp);
+  var now=new Date(),curY=String(now.getFullYear()),curM=now.getMonth();
+  var MLBL={eur:'Incassi',notti:'Notti vendute',adr:'Prezzo medio a notte',occ:'Occupazione'};
+  /* ---- fotografia YTD ---- */
+  var ytdA=incAgg(state.year,incCut(state.year)),ytdB=incAgg(state.incCmp,incCut(state.incCmp));
+  var gA=incGrand(ytdA),gB=incGrand(ytdB);
+  var dA=incDoy(state.year),dB=incDoy(state.incCmp);
+  var adrA=gA.nig>0?gA.rev/gA.nig:0,adrB=gB.nig>0?gB.rev/gB.nig:0;
+  var occA=incCapTot(dA)>0?gA.nig/incCapTot(dA)*100:0,occB=incCapTot(dB)>0?gB.nig/incCapTot(dB)*100:0;
+  var dstr=now.toLocaleDateString('it-IT',{day:'numeric',month:'long'});
+  var y1='<div class="panel"><h3>\ud83d\udcf8 Fotografia 1 gen \u2192 '+dstr+'</h3><div class="kpis">'+
+    '<div class="kpi wide"><div class="v">'+eur(gA.rev)+'</div><div class="l">Incassi '+state.year+' \u00b7 vs '+state.incCmp+' stesso periodo ('+eur(gB.rev)+') '+incDelta(gA.rev,gB.rev,1)+'</div></div>'+
+    '<div class="kpi"><div class="v">'+Math.round(gA.nig)+'</div><div class="l">Notti vendute \u00b7 '+incDelta(gA.nig,gB.nig)+'</div></div>'+
+    '<div class="kpi"><div class="v">'+eur(adrA)+'</div><div class="l">Prezzo medio \u00b7 '+incDelta(adrA,adrB)+'</div></div>'+
+    '<div class="kpi"><div class="v">'+Math.round(occA)+'%</div><div class="l">Occupazione \u00b7 '+incDelta(occA,occB)+'</div></div>'+
+    '<div class="kpi"><div class="v">'+eur(dA>0?gA.rev/dA:0)+'</div><div class="l">Ricavo medio al giorno</div></div>'+
+    '</div>';
+  y1+='<div style="overflow-x:auto;margin-top:12px"><table class="stbl"><tr><th>Camera</th><th>'+state.year+'</th><th>'+state.incCmp+'</th><th>\u0394%</th></tr>';
+  ROOMS.forEach(function(r){var a=incRoomTot(ytdA,r),b2=incRoomTot(ytdB,r);
+    y1+='<tr><td><span class="rdot" style="background:'+ROOM_COLORS[r]+'"></span>'+r+'</td><td>'+eur(a.rev)+'</td><td>'+eur(b2.rev)+'</td><td>'+incDelta(a.rev,b2.rev)+'</td></tr>'});
+  y1+='<tr class="peak"><td>Totale</td><td>'+eur(gA.rev)+'</td><td>'+eur(gB.rev)+'</td><td>'+incDelta(gA.rev,gB.rev)+'</td></tr></table></div>';
+  y1+='<div class="note" style="margin-top:9px;font-size:11.5px">Confronto omogeneo: stesso intervallo di giorni nei due anni.</div></div>';
+  var yEl=document.getElementById('incYtd');if(yEl)yEl.innerHTML=y1;
+  /* ---- matrice mese x camera ---- */
+  var h='<div class="panel"><h3>'+MLBL[mode]+' \u00b7 '+state.year+'</h3><div style="overflow-x:auto"><table class="mtx"><tr><th>Mese</th>';
+  ROOMS.forEach(function(r){h+='<th><span class="rdot" style="background:'+ROOM_COLORS[r]+'"></span>'+(r==='Dormitorio'?'Dorm':r)+'</th>'});
+  h+='<th>Tot</th></tr>';
+  for(var m=0;m<12;m++){
+    var days=incDaysIn(state.year,m),rowR=0,rowN=0,cells='';
+    for(var k=0;k<ROOMS.length;k++){
+      var r=ROOMS[k],rv=A.rev[r][m],ng=A.nig[r][m];rowR+=rv;rowN+=ng;
+      var t=incTxt(mode,incVal(mode,rv,ng,days,r));
+      cells+='<td'+(t?'':' class="z"')+'>'+(t||'\u00b7')+'</td>';
+    }
+    var tt=incTxt(mode,incVal(mode,rowR,rowN,days,'__tot'));
+    var cls=(String(state.year)===curY&&m===curM)?' class="cur"':'';
+    h+='<tr'+cls+'><td>'+MONTHS[m]+'</td>'+cells+'<td class="tc">'+(tt||'\u00b7')+'</td></tr>';
+  }
+  var totCells='',gr=0,gn=0;
+  for(var k2=0;k2<ROOMS.length;k2++){var r2=ROOMS[k2],rt=incRoomTot(A,r2);gr+=rt.rev;gn+=rt.nig;
+    totCells+='<td>'+(incTxt(mode,incVal(mode,rt.rev,rt.nig,incElapsed(state.year),r2))||'\u00b7')+'</td>'}
+  h+='<tr class="sum"><td>Anno</td>'+totCells+'<td class="tc">'+(incTxt(mode,incVal(mode,gr,gn,incElapsed(state.year),'__tot'))||'\u00b7')+'</td></tr>';
+  h+='</table></div>';
+  h+='<div class="note" style="margin-top:10px;font-size:11.5px">Ogni prenotazione \u00e8 attribuita al mese di <b>check-in</b>. Per il <b>dormitorio</b> le notti sono <b>posti letto \u00d7 notti</b> e il prezzo medio \u00e8 per letto. L\u2019occupazione usa i giorni gi\u00e0 trascorsi (dorm: '+DORM_BEDS+' letti; colonna Tot: 3 camere + '+DORM_BEDS+' letti).</div></div>';
+  /* ---- confronto per camera su tutto l'anno ---- */
+  h+='<div class="panel"><h3>'+MLBL[mode]+' \u00b7 totale '+state.year+' vs '+state.incCmp+'</h3><div style="overflow-x:auto"><table class="stbl"><tr><th>Camera</th><th>'+state.year+'</th><th>'+state.incCmp+'</th><th>\u0394%</th></tr>';
+  var eA=incElapsed(state.year),eB=incElapsed(state.incCmp);
+  ROOMS.forEach(function(r){var a=incRoomTot(A,r),b2=incRoomTot(B,r);
+    var va=incVal(mode,a.rev,a.nig,eA,r),vb=incVal(mode,b2.rev,b2.nig,eB,r);
+    h+='<tr><td><span class="rdot" style="background:'+ROOM_COLORS[r]+'"></span>'+r+'</td><td>'+(incTxt(mode,va)||'\u2014')+'</td><td>'+(incTxt(mode,vb)||'\u2014')+'</td><td>'+incDelta(va,vb)+'</td></tr>'});
+  var ga=incGrand(A),gb=incGrand(B);
+  var vga=incVal(mode,ga.rev,ga.nig,eA,'__tot'),vgb=incVal(mode,gb.rev,gb.nig,eB,'__tot');
+  h+='<tr class="peak"><td>Totale</td><td>'+(incTxt(mode,vga)||'\u2014')+'</td><td>'+(incTxt(mode,vgb)||'\u2014')+'</td><td>'+incDelta(vga,vgb)+'</td></tr></table></div>'+((String(state.year)===String(new Date().getFullYear()))?'<div class="note" style="margin-top:9px;font-size:11.5px">Il '+state.year+' \u00e8 un anno <b>in corso</b>: qui il totale \u00e8 parziale. Per il confronto omogeneo usa il riquadro <b>Fotografia</b> in alto.</div>':'')+'</div>';
+  body.innerHTML=h;
+}
+function incCopy(){
+  var mode=state.incMode,A=incAgg(state.year);
+  var LBL={eur:'Incassi (\u20ac)',notti:'Notti vendute',adr:'Prezzo medio a notte (\u20ac)',occ:'Occupazione (%)'};
+  var out='Aracoeli 20 \u00b7 '+LBL[mode]+' \u00b7 '+state.year+'\n\nMese\t'+ROOMS.join('\t')+'\tTotale\n';
+  for(var m=0;m<12;m++){var days=incDaysIn(state.year,m),rowR=0,rowN=0,line=MONTHS_F[m];
+    for(var k=0;k<ROOMS.length;k++){var r=ROOMS[k],rv=A.rev[r][m],ng=A.nig[r][m];rowR+=rv;rowN+=ng;
+      var v=incVal(mode,rv,ng,days,r);line+='\t'+(v?(Math.round(v*100)/100):'')}
+    var tv=incVal(mode,rowR,rowN,days,'__tot');out+=line+'\t'+(tv?(Math.round(tv*100)/100):'')+'\n'}
+  var eA=incElapsed(state.year),line2='TOTALE',gr=0,gn=0;
+  for(var k2=0;k2<ROOMS.length;k2++){var r2=ROOMS[k2],rt=incRoomTot(A,r2);gr+=rt.rev;gn+=rt.nig;
+    var v2=incVal(mode,rt.rev,rt.nig,eA,r2);line2+='\t'+(v2?(Math.round(v2*100)/100):'')}
+  var gv=incVal(mode,gr,gn,eA,'__tot');out+=line2+'\t'+(gv?(Math.round(gv*100)/100):'')+'\n';
+  var ok=function(){toast('Tabella copiata')};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(out).then(ok,function(){fallbackCopy(out,ok)})}
+  else fallbackCopy(out,ok);
+}
+function nav(v){state.view=v;document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));document.getElementById('v-'+v).classList.add('active');var navV=(v==='clean')?'more':((v==='inc')?'dash':v);document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===navV));document.getElementById('fab').style.display=(v==='list'||v==='dash'||v==='now'||v==='cal')?'flex':'none';if(v==='cal')renderCal();if(v==='cmp')renderCmp();if(v==='inc')renderInc();if(v==='more')renderSettings();if(v==='clean')renderClean();renderCleaning();window.scrollTo(0,0)}
 
 function setType(t){state.fType=t;document.querySelectorAll('#typeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));document.querySelectorAll('.only-p').forEach(e=>e.style.display=t==='p'?'':'none');document.getElementById('roomLbl').textContent=t==='p'?'Stanze e prezzi':'Stanze da chiudere';renderRoomInputs();updReceiptVis()}
 function toggleRoom(r){if(r in state.fRooms)delete state.fRooms[r];else state.fRooms[r]=0;renderRoomInputs();updTotal()}
@@ -797,15 +924,14 @@ async function importCancSeed(){
 async function cancelBooking(){if(!state.editId)return;const i=state.bookings.findIndex(x=>x.id===state.editId);if(i<0)return;if(!confirm('Segnare come CANCELLATA DAL CLIENTE?\n\nResta nello storico come cancellazione, ma non conta piu\' in ricavi, ospiti, calendario e lista pulizie.'))return;state.bookings[i].cancelled=true;state.bookings[i].cancelledAt=todayISO();await persist();buildYears();render();closeForm();toast('Segnata come cancellata')}
 async function restoreBooking(){if(!state.editId)return;const i=state.bookings.findIndex(x=>x.id===state.editId);if(i<0)return;if(!confirm('Ripristinare questa prenotazione?\n\nTornera\' a contare in ricavi, ospiti e calendario.'))return;state.bookings[i].cancelled=false;state.bookings[i].cancelledAt='';await persist();buildYears();render();closeForm();toast('Prenotazione ripristinata')}
 
-
 function openExp(id){state.expEditId=(typeof id==='string')?id:null;document.getElementById('e-cat').innerHTML=ECATS.map(c=>`<div class="chip" data-e="${c}" onclick="pickECat('${c}')">${c}</div>`).join('');const f=x=>document.getElementById(x);if(state.expEditId){const e=state.expenses.find(x=>x.id===state.expEditId);document.getElementById('expTitle').textContent='Modifica spesa';f('e-desc').value=e.description||'';f('e-date').value=e.date;f('e-amount').value=e.amount||'';state.eCat=e.category;state.eSub=(ESUBS[e.category]?expSub(e):'');f('expDelBtn').style.display='block'}else{document.getElementById('expTitle').textContent='Nuova spesa';f('e-desc').value='';f('e-date').value=todayISO();f('e-amount').value='';state.eCat='Bollette';state.eSub='';f('expDelBtn').style.display='none'}document.querySelectorAll('#e-cat .chip').forEach(c=>c.classList.toggle('on',c.dataset.e===state.eCat));renderESub();document.getElementById('expModal').classList.add('open')}
-function pickECat(c){state.eCat=c;document.querySelectorAll('#e-cat .chip').forEach(x=>x.classList.toggle('on',x.dataset.e===c));if(!(ESUBS[c]||[]).includes(state.eSub))state.eSub='';renderESub()}
 function pickESub(x){state.eSub=x;document.querySelectorAll('#e-sub .chip').forEach(c=>c.classList.toggle('on',c.dataset.s===x))}
 function renderESub(){var row=document.getElementById('e-sub-row');var subs=ESUBS[state.eCat];
   if(!subs){row.style.display='none';return}
   row.style.display='';
   document.getElementById('e-sub').innerHTML=subs.map(function(x){return '<div class="chip" data-s="'+x+'" onclick="pickESub(\''+x+'\')">'+x+'</div>'}).join('');
   document.querySelectorAll('#e-sub .chip').forEach(function(c){c.classList.toggle('on',c.dataset.s===state.eSub)})}
+function pickECat(c){state.eCat=c;document.querySelectorAll('#e-cat .chip').forEach(x=>x.classList.toggle('on',x.dataset.e===c));if(!(ESUBS[c]||[]).includes(state.eSub))state.eSub='';renderESub()}
 function closeExp(){document.getElementById('expModal').classList.remove('open')}
 async function saveExp(){const f=x=>document.getElementById(x);const date=f('e-date').value;if(!date){toast('Inserisci la data');return}const rec={id:state.expEditId||uid(),category:state.eCat,sub:(ESUBS[state.eCat]?(state.eSub||''):''),description:f('e-desc').value.trim(),date,amount:+f('e-amount').value||0};if(state.expEditId){const i=state.expenses.findIndex(x=>x.id===state.expEditId);state.expenses[i]=rec}else state.expenses.push(rec);await persistE();render();closeExp();toast('Spesa salvata')}
 async function deleteExp(){if(!state.expEditId)return;if(!confirm('Eliminare questa spesa?'))return;state.expenses=state.expenses.filter(x=>x.id!==state.expEditId);await persistE();render();closeExp();toast('Eliminata')}
