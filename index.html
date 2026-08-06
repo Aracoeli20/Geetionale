@@ -203,12 +203,14 @@ main{flex:1;padding:16px 14px 92px;overflow-y:auto}
       <div id="bkList"></div>
     </div>
     <div class="view" id="v-more">
-      <div class="section-t">💶 Listino e tariffe <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--grey);font-size:10.5px">· app v44</span></div>
+      <div class="section-t">💶 Listino e tariffe <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--grey);font-size:10.5px">· app v45</span></div>
       <button class="btn row2" style="background:#3A5A6E;margin-bottom:9px" onclick="openLs()">💶 Imposta tariffe, stagioni e date speciali</button>
       <button class="btn row2" style="background:#4C8C7D;margin-bottom:16px" onclick="openCut()">💼 Giorno 0 · gestione imprenditoriale</button>
       <div class="section-t">Spese</div>
       <div class="kpis"><div class="kpi"><div class="v red" id="expTot">€ 0</div><div class="l" id="expYear">Spese anno</div></div><div class="kpi"><div class="v" id="expN">0</div><div class="l">Voci registrate</div></div></div>
       <button class="btn row2" onclick="openExp()">+ Aggiungi spesa</button>
+      <button class="btn ghost row2" style="margin-top:8px" onclick="openBud()">📅 Previsionale e costi per prenotazione</button>
+      <div id="expBudPanel"></div>
       <div id="expList" style="margin-top:12px"></div>
       <button class="btn row2" style="background:#4C8C7D" onclick="nav('clean')">🧹 Compenso addetta pulizie →</button>
       <div class="section-t">🧹 Pulizie</div>
@@ -339,6 +341,10 @@ main{flex:1;padding:16px 14px 92px;overflow-y:auto}
     <button class="btn" onclick="saveExp()">Salva spesa</button>
     <button class="btn del" id="expDelBtn" onclick="deleteExp()" style="display:none">Elimina spesa</button>
   </div>
+</div></div>
+<div class="modal" id="budModal"><div class="sheet">
+  <div class="sheet-hdr"><h2>📅 Previsionale mensile</h2><button class="x" onclick="closeBud()">✕</button></div>
+  <div class="form"><div id="budBody"></div></div>
 </div></div>
 <div class="modal" id="cutModal"><div class="sheet">
   <div class="sheet-hdr"><h2>💼 Gestione imprenditoriale</h2><button class="x" onclick="closeCut()">✕</button></div>
@@ -492,7 +498,7 @@ async function persistE(){if(currentUid){try{await docRef().set({expenses:JSON.s
 async function persistS(){if(currentUid){try{await docRef().set({settings:JSON.stringify(state.settings),updated:Date.now()},{merge:true})}catch(e){toast('Errore salvataggio')}}}
 function buildYears(){const ys=new Set(state.bookings.map(b=>b.date.slice(0,4)));ys.add(String(new Date().getFullYear()));const arr=[...ys].sort().reverse();if(!arr.includes(state.year))state.year=arr[0];document.getElementById('yearSel').innerHTML=arr.map(y=>`<option value="${y}"${y===state.year?' selected':''}>${y}</option>`).join('')}
 function yb(){return state.bookings.filter(b=>b.date.slice(0,4)===state.year&&b.type!=='block'&&!b.cancelled)}
-function render(){renderDash();renderList();renderStorico();renderNow();renderCal();renderExp();renderCmp();renderInc();renderClean();renderBackupStatus();document.getElementById('yearSel').value=state.year}
+function render(){renderDash();renderList();renderStorico();renderNow();renderCal();renderExp();renderExpBud();renderCmp();renderInc();renderClean();renderBackupStatus();document.getElementById('yearSel').value=state.year}
 
 function renderDash(){
   const b=yb();
@@ -744,6 +750,84 @@ function renderStorico(){
   const ys=[...new Set(state.bookings.filter(b=>b.type!=='block').map(b=>b.date.slice(0,4)))].sort();
   const rows=ys.map(y=>{const bs=state.bookings.filter(b=>b.date.slice(0,4)===y&&b.type!=='block'&&!b.cancelled);const r=rn=>{let s=0;bs.forEach(b=>(b.rooms||[]).forEach(x=>{if(x.room===rn)s+=(+x.amount||0)}));return s};const lordo=bs.reduce((s,b)=>s+total(b),0);const osp=bs.reduce((s,b)=>s+(+b.guests||0),0);return{y,mimi:r('Mimì'),lina:r('Lina'),dorm:r('Dormitorio'),suite:r('Suite'),lordo,osp}});
   document.getElementById('storicoTbl').innerHTML=`<tr><th>Anno</th><th>Mimì</th><th>Lina</th><th>Dorm.</th><th>Suite</th><th>Lordo</th><th>Osp.</th></tr>`+rows.map(r=>`<tr class="${r.y==='2023'?'peak':''}"><td>${r.y}</td><td>${k1(r.mimi)}</td><td>${k1(r.lina)}</td><td>${k1(r.dorm)}</td><td>${r.suite?k1(r.suite):'—'}</td><td><b>${k1(r.lordo)}</b></td><td>${r.osp}</td></tr>`).join('');
+}
+const BUD_KEYS=['Bollette:Luce','Bollette:Gas','Bollette:Acqua','Bollette:Internet','Bollette:Altro','Alimentari','Manutenzione','Tasse','Varie'];
+function budGet(){var s0=state.settings=state.settings||{};if(!s0.budget||typeof s0.budget!=='object')s0.budget={};return s0.budget}
+function budKeyOf(e){var c=e.category||'Varie';if(c!=='Bollette')return c;var sub=e.sub||detectSub(e.desc||'');return 'Bollette:'+(sub||'Altro')}
+function budSuggest(){
+  var end=todayISO().slice(0,7);
+  var d=new Date(end+'-01T00:00');d.setMonth(d.getMonth()-12);
+  var start=d.toISOString().slice(0,7);
+  var sum={},mset={};
+  (state.expenses||[]).forEach(function(e){
+    var m=(e.date||'').slice(0,7);
+    if(m<start||m>=end)return;
+    var k=budKeyOf(e);if(BUD_KEYS.indexOf(k)<0)return;
+    sum[k]=(sum[k]||0)+(+e.amount||0);mset[m]=1;
+  });
+  var out={};BUD_KEYS.forEach(function(k){out[k]=Math.round((sum[k]||0)/12)});
+  return out;
+}
+function budFixedMonth(){var B=budGet();return BUD_KEYS.reduce(function(t,k){return t+(+B[k]||0)},0)}
+function openBud(){renderBud();document.getElementById('budModal').classList.add('open')}
+function closeBud(){document.getElementById('budModal').classList.remove('open');renderExp();renderExpBud()}
+function setBud(k,v){budGet()[k]=+v||0;renderBudTot()}
+function applyBudSuggest(){var sg=budSuggest(),B=budGet();BUD_KEYS.forEach(function(k){B[k]=sg[k]});persistS();renderBud();toast('Previsionale proposto dalla media degli ultimi 12 mesi')}
+function renderBudTot(){var e=document.getElementById('budTot');if(!e)return;var m=budFixedMonth();e.innerHTML='<div class="rr big" style="display:flex;justify-content:space-between"><span>Totale fisso</span><b>'+eur(m)+' /mese · '+eur(m*12)+' /anno</b></div>'}
+function renderBud(){
+  var B=budGet(),sg=budSuggest(),el=document.getElementById('budBody');
+  var h='<div class="note" style="margin-bottom:12px">Quanto prevedi di spendere <b>ogni mese</b>, voce per voce. Le spese annuali (assicurazione, tasse) dividile per 12. Accanto, in grigio, la tua media reale degli ultimi 12 mesi.</div>';
+  h+='<button class="btn ghost row2" style="margin-bottom:14px" onclick="applyBudSuggest()">✨ Proponi dalla mia storia</button>';
+  BUD_KEYS.forEach(function(k){
+    var lbl=k.replace('Bollette:','\ud83d\udca1 ');
+    h+='<div class="qrate"><span>'+lbl+'<small>media reale '+eur(sg[k]||0)+' /mese</small></span>'+
+      '<input type="number" min="0" value="'+((B[k]==null)?'':B[k])+'" placeholder="0" oninput="setBud(\''+k+'\',this.value)" onchange="persistS()"></div>';
+  });
+  h+='<div id="budTot" style="margin-top:14px"></div>';
+  h+='<div class="note" style="margin-top:11px;font-size:11px">Pulizie e commissioni non sono qui: le prime le prendo dal registro pulizie, le seconde dalle prenotazioni — cos\u00ec non le conti due volte.</div>';
+  el.innerHTML=h;renderBudTot();
+}
+function renderExpBud(){
+  var el=document.getElementById('expBudPanel');if(!el)return;
+  var B=budGet(),tot=budFixedMonth();
+  if(!tot){el.innerHTML='<div class="note" style="margin-top:12px">Apri <b>\ud83d\udcc5 Previsionale</b> e imposta le spese mensili: qui vedrai previsto vs speso e il costo reale di ogni prenotazione.</div>';return}
+  var ym=todayISO().slice(0,7);
+  var sp={};(state.expenses||[]).forEach(function(e){if((e.date||'').slice(0,7)!==ym)return;var k=budKeyOf(e);if(BUD_KEYS.indexOf(k)<0)return;sp[k]=(sp[k]||0)+(+e.amount||0)});
+  var spTot=BUD_KEYS.reduce(function(t,k){return t+(sp[k]||0)},0);
+  var h='<div class="panel" style="margin-top:12px"><h3>\ud83d\udcc5 '+MONTHS_F[+ym.slice(5,7)-1]+' \u00b7 previsto vs speso</h3>';
+  BUD_KEYS.forEach(function(k){
+    var b=+B[k]||0,v=sp[k]||0;if(!b&&!v)return;
+    var pc=b?Math.round(v/b*100):999;
+    h+='<div style="margin-top:8px"><div style="display:flex;justify-content:space-between;font-size:12px"><span>'+esc(k.replace('Bollette:',''))+'</span><span><b style="color:'+(v>b?'var(--red)':'var(--dark)')+'">'+eur(v)+'</b> <span style="color:var(--grey)">/ '+eur(b)+'</span></span></div>'+
+    '<div style="height:5px;background:var(--salvia);border-radius:3px;margin-top:4px"><div style="height:5px;width:'+Math.min(100,pc)+'%;background:'+(v>b?'#A23B2E':'#4C8C7D')+';border-radius:3px"></div></div></div>';
+  });
+  h+='<div style="display:flex;justify-content:space-between;margin-top:11px;font-weight:700;font-size:13px;border-top:1px solid var(--line);padding-top:8px"><span>Totale</span><span>'+eur(spTot)+' / '+eur(tot)+'</span></div></div>';
+  var y=state.year;
+  var bs=(state.bookings||[]).filter(function(b){return b.type!=='block'&&!b.cancelled&&(b.date||'').slice(0,4)===y});
+  var nb=bs.length;
+  if(nb){
+    var rn=0,gn=0,rev=0,comm=0,nn=0;
+    bs.forEach(function(b){var r=roomNames(b).length||1;var n=+b.nights||0;rn+=r*n;gn+=(+b.guests||0)*n;nn+=n;rev+=total(b);comm+=(+b.commission||0)});
+    var mNow=(y===todayISO().slice(0,4))?(new Date(todayISO()+'T00:00').getMonth()+1):12;
+    var fixRN=rn?tot*mNow/rn:0;
+    var cln=(state.cleaning||[]).filter(function(c){return (c.date||'').slice(0,4)===y}).reduce(function(t,c){return t+clnCostOf(c)},0);
+    var clnPer=cln/nb;
+    var end=todayISO().slice(0,7);var d0=new Date(end+'-01T00:00');d0.setMonth(d0.getMonth()-12);var start=d0.toISOString().slice(0,10).slice(0,7);
+    var alim=0;(state.expenses||[]).forEach(function(e){var m=(e.date||'').slice(0,7);if(m>=start&&m<end&&e.category==='Alimentari')alim+=+e.amount||0});
+    var gn12=0;(state.bookings||[]).forEach(function(b){if(b.type==='block'||b.cancelled)return;var m=(b.date||'').slice(0,7);if(m>=start&&m<end)gn12+=(+b.guests||0)*(+b.nights||0)});
+    var alimPer=gn12?alim/gn12:0;
+    var aN=nn/nb,aG=gn/nb,aRN=rn/nb,aRev=rev/nb,aComm=comm/nb;
+    var cost=fixRN*aRN+clnPer+alimPer*aG*aN+aComm;
+    var marg=aRev-cost;
+    h+='<div class="panel" style="margin-top:12px"><h3>\ud83d\udca1 Quanto costa una prenotazione \u00b7 '+y+'</h3>'+
+      '<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0"><span>Fissi per notte-camera venduta</span><b>'+eur2(fixRN)+'</b></div>'+
+      '<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0"><span>Pulizie per prenotazione</span><b>'+eur2(clnPer)+'</b></div>'+
+      '<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0"><span>Alimentari per ospite-notte</span><b>'+eur2(alimPer)+'</b></div>'+
+      '<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0"><span>Commissione media a prenotazione</span><b>'+eur2(aComm)+'</b></div>'+
+      '<div style="background:var(--card);border:1px solid var(--line);border-radius:11px;padding:11px 12px;margin-top:10px;font-size:12.5px;line-height:1.6">La prenotazione tipo \u2014 <b>'+aN.toFixed(1)+' notti \u00b7 '+aG.toFixed(1)+' ospiti</b> \u2014 incassa <b>'+eur(aRev)+'</b> e costa <b>'+eur(cost)+'</b>:<br>margine <b style="color:'+(marg>0?'#2C6B45':'var(--red)')+'">'+eur(marg)+'</b> ('+(aRev?Math.round(marg/aRev*100):0)+'% dell\'incasso)</div>'+
+      '<div class="note" style="margin-top:9px;font-size:11px">Fissi dal previsionale \u00b7 pulizie e commissioni dai dati reali \u00b7 alimentari: media degli ultimi 12 mesi.</div></div>';
+  }
+  el.innerHTML=h;
 }
 function toggleExpCat(c){state.expOpen=state.expOpen||{};state.expOpen[c]=!state.expOpen[c];renderExp()}
 function toggleExpSub(k){state.expSubOpen=state.expSubOpen||{};state.expSubOpen[k]=!state.expSubOpen[k];renderExp()}
@@ -1531,6 +1615,7 @@ document.getElementById('regModal').addEventListener('click',e=>{if(e.target.id=
 document.getElementById('quoteModal').addEventListener('click',e=>{if(e.target.id==='quoteModal')closeQuote()});
 document.getElementById('lsModal').addEventListener('click',e=>{if(e.target.id==='lsModal')closeLs()});
 document.getElementById('cutModal').addEventListener('click',e=>{if(e.target.id==='cutModal')closeCut()});
+document.getElementById('budModal').addEventListener('click',e=>{if(e.target.id==='budModal')closeBud()});
 
 
 function exportCSV(){markBackupLater();
