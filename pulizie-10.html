@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1B2A41">
+<title>Pulizie · Aracoeli 20</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --dark:#1B2A41; --ocra:#C08B2E; --card:#FBF8F1; --line:#E4DFD2;
+  --grey:#8A8578; --salvia:#EDEFE6; --red:#A23B2E; --green:#2C6B45;
+  --serif:'Cormorant Garamond',Georgia,serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#F5F2EA;font-family:Inter,system-ui,-apple-system,sans-serif;color:var(--dark);padding-bottom:40px}
+header{background:var(--dark);color:#fff;padding:22px 18px 20px;position:sticky;top:0;z-index:5}
+header h1{font-family:var(--serif);font-size:26px;margin:0;font-weight:600}
+header .s{font-size:12.5px;opacity:.72;margin-top:3px}
+.wrap{padding:16px 14px}
+.day{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 14px;margin-bottom:11px}
+.day.today{border-color:var(--ocra);border-width:2px}
+.dt{font-weight:700;font-size:15px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.dt .rel{font-size:11.5px;color:var(--grey);font-weight:500;white-space:nowrap}
+.rm{display:flex;align-items:center;gap:8px;font-size:15px;padding:7px 0;border-bottom:1px solid var(--salvia)}
+.rm:last-child{border-bottom:none;padding-bottom:0}
+.rm .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;background:var(--grey)}
+.tag{font-size:11px;font-weight:700;color:#fff;background:var(--ocra);padding:2px 7px;border-radius:20px;margin-left:auto;white-space:nowrap}
+.tag.cl{background:var(--green)}
+.tag.ar{background:#2F6DB0}
+.tag.rsx{background:#7A8471}
+.setup{background:#FBE5C8;color:#8A5A12;border-radius:9px;padding:7px 10px;font-size:12.5px;font-weight:600;margin:5px 0 2px 17px;display:flex;gap:6px;align-items:center}
+.brk{background:var(--dark);color:#fff;border-radius:11px;padding:10px 12px;margin-top:9px;font-size:13.5px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.brk b{font-family:var(--serif);font-size:21px;font-weight:600}
+.brk .tv{font-size:11.5px;opacity:.8;text-align:right;line-height:1.4}
+.suite{background:#EDE7F3;color:#5B4577;border-radius:11px;padding:10px 12px;margin-top:8px;font-size:13px;font-weight:600;display:flex;gap:7px;align-items:center;line-height:1.5}
+.rs{background:var(--salvia);border-radius:9px;padding:8px 11px;font-size:12.5px;margin:5px 0 2px 17px;line-height:1.55;color:#4A5140}
+.rs .hd{font-weight:700;color:var(--dark)}
+.rs ul{margin:4px 0 0;padding-left:17px}
+.rs li{margin:1px 0}
+.rs .due{font-weight:700;color:#A2601E}
+.badge{background:#fff;border:2px solid var(--line);border-radius:16px;padding:15px 16px;margin-bottom:14px}
+.badge.on{border-color:var(--green);background:#F3F9F4}
+.badge h2{margin:0 0 3px;font-family:var(--serif);font-size:21px;font-weight:600}
+.badge .st{font-size:13px;color:var(--grey);line-height:1.55}
+.badge .st b{color:var(--dark)}
+.bbtn{width:100%;border:none;border-radius:13px;padding:16px;font-size:16px;font-weight:700;font-family:inherit;margin-top:12px;color:#fff;background:var(--green)}
+.bbtn.out{background:var(--ocra)}
+.bbtn:disabled{background:var(--line);color:var(--grey)}
+.nm{width:100%;border:1px solid var(--line);border-radius:11px;padding:12px;font-size:15px;font-family:inherit;margin-top:10px;box-sizing:border-box}
+.hist{font-size:12.5px;color:var(--grey);margin-top:11px;line-height:1.7;border-top:1px solid var(--line);padding-top:10px}
+.hist b{color:var(--dark)}
+.inv{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-top:14px}
+.inv h3{margin:0 0 4px;font-family:var(--serif);font-size:20px;font-weight:600}
+.inv .sub{font-size:12px;color:var(--grey);margin-bottom:10px;line-height:1.5}
+.icat{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ocra);margin:12px 0 5px}
+.irow{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--salvia)}
+.irow:last-child{border-bottom:none}
+.irow .nm{flex:1;min-width:0;font-size:14.5px;line-height:1.35}
+.irow .nm small{display:block;font-size:11.5px;color:var(--grey)}
+.irow .nm small.warn{color:#A2601E;font-weight:600}
+.irow .qt{font-family:var(--serif);font-size:21px;font-weight:600;min-width:44px;text-align:right}
+.irow .qt.zero{color:var(--red)}
+.imin{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--line);background:#fff;font-size:19px;color:var(--dark);line-height:1;flex-shrink:0}
+.imin:active{background:var(--salvia)}
+.itot{background:var(--salvia);border-radius:10px;padding:9px 11px;font-size:12.5px;margin-top:11px;line-height:1.55}
+.mrow{display:flex;align-items:center;gap:12px;width:100%;background:#fff;border:1px solid var(--line);border-radius:14px;padding:15px 16px;margin-top:14px;font-family:inherit;text-align:left;cursor:pointer}
+.mrow .mic{font-size:22px;line-height:1}
+.mrow .mtx{flex:1;min-width:0}
+.mrow .mtx b{display:block;font-size:15.5px;color:var(--dark);font-weight:600}
+.mrow .mtx small{display:block;font-size:12px;color:var(--grey);margin-top:2px}
+.mrow .mar{font-size:22px;color:var(--line)}
+.mbadge{display:inline-block;background:#A2601E;color:#fff;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:20px;margin-left:7px;vertical-align:middle}
+.back{background:none;border:none;font-family:inherit;font-size:14px;color:var(--dark);font-weight:600;padding:6px 0;margin-bottom:6px;cursor:pointer}
+.sal{border-radius:16px;padding:15px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.sal .l{font-size:13.5px;line-height:1.5}
+.sal .v{font-family:var(--serif);font-size:29px;font-weight:600;white-space:nowrap}
+.sal.dare{background:#FBF3E8;border:2px solid var(--ocra);color:#8A5A12}
+.sal.pari{background:var(--salvia);border:2px solid var(--line);color:#4A5140}
+.sal.cred{background:#EFF6F1;border:2px solid var(--green);color:#2C6B45}
+.leg{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-top:16px}
+.leg h3{margin:0 0 10px;font-family:var(--serif);font-size:19px;font-weight:600}
+.leg .r{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--salvia);font-size:13px;line-height:1.5}
+.leg .r:last-child{border-bottom:none;padding-bottom:0}
+.leg .k{flex-shrink:0;min-width:104px}
+.leg .k .tag{margin-left:0}
+.leg .d{color:var(--grey)}
+.note{background:var(--salvia);border-radius:12px;padding:13px 14px;font-size:13.5px;line-height:1.6;color:var(--dark);margin-bottom:14px}
+.empty{text-align:center;color:var(--grey);padding:44px 20px;font-size:14.5px;line-height:1.6}
+.foot{text-align:center;color:var(--grey);font-size:11.5px;margin-top:18px;line-height:1.7}
+.err{background:#F3D6D2;color:var(--red);border-radius:12px;padding:15px;font-size:14px;line-height:1.6;margin:14px}
+.sk{background:#fff;border:1px solid var(--line);border-radius:14px;height:88px;margin-bottom:11px;animation:p 1.3s ease-in-out infinite}
+@keyframes p{0%,100%{opacity:.55}50%{opacity:.9}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🧹 Pulizie e colazioni</h1>
+  <div class="s">Aracoeli 20 · si aggiorna da solo</div>
+</header>
+<div class="wrap"><div id="saldo"></div><div class="badge" id="badge"></div></div>
+<div class="wrap" id="app">
+  <div class="sk"></div><div class="sk"></div><div class="sk"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBY5zTbXJIx2NI8FwdIDPunHM35PrzGOYs",
+  authDomain: "aracoeli20-44132.firebaseapp.com",
+  projectId: "aracoeli20-44132",
+  storageBucket: "aracoeli20-44132.firebasestorage.app",
+  messagingSenderId: "479644849082",
+  appId: "1:479644849082:web:a03ab132ea9169937e4383"
+};
+
+const COL = {'Mimì':'#2F6DB0','Lina':'#E08A2C','Dormitorio':'#38B24A','Suite':'#7B4DA0'};
+const MESI = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+const GG = ['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
+
+function todayISO(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function fmtDay(iso){
+  const d = new Date(iso + 'T12:00:00');
+  return GG[d.getDay()] + ' ' + d.getDate() + ' ' + MESI[d.getMonth()];
+}
+function relDay(iso){
+  const a = new Date(todayISO() + 'T12:00:00'), b = new Date(iso + 'T12:00:00');
+  const n = Math.round((b - a) / 86400000);
+  if (n === 0) return 'oggi';
+  if (n === 1) return 'domani';
+  if (n === 2) return 'dopodomani';
+  if (n < 0) return '';
+  return 'fra ' + n + ' giorni';
+}
+function esc(x){
+  return String(x == null ? '' : x).replace(/[&<>"']/g, c => (
+    {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
+  ));
+}
+
+function render(plan, note, updated){
+  const app = document.getElementById('app');
+  const today = todayISO();
+  const days = (plan || []).filter(g => g.d >= today);
+  let h = '';
+  if (note) h += '<div class="note">📌 ' + esc(note) + '</div>';
+  if (!days.length){
+    h += '<div class="empty">Niente in programma<br>nei prossimi giorni.<br><br>Questa pagina si aggiorna da sola:<br>ricontrolla più avanti.</div>';
+  } else {
+    days.forEach(g => {
+      const rel = relDay(g.d);
+      h += '<div class="day' + (g.d === today ? ' today' : '') + '">' +
+        '<div class="dt"><span>' + fmtDay(g.d) + '</span>' +
+        (rel ? '<span class="rel">' + rel + '</span>' : '') + '</div>';
+      (g.r || []).forEach(r => {
+        const nome = typeof r === 'string' ? r : (r.n || '');
+        const pulire = typeof r === 'object' ? !!r.cl : true;
+        const arrivo = typeof r === 'object' && r.ar;
+        const setup  = (typeof r === 'object' && r.s) || '';
+        const rs = (typeof r === 'object' && r.rs) || 0;
+        let tag = '';
+        if (pulire && arrivo) tag = '<span class="tag">⚡ pulire e preparare</span>';
+        else if (pulire)      tag = '<span class="tag cl">da pulire</span>';
+        else if (arrivo)      tag = '<span class="tag ar">da preparare</span>';
+        else if (rs)          tag = '<span class="tag rsx">♻️ riassetto</span>';
+        h += '<div class="rm"><span class="dot" style="background:' + (COL[nome] || '#8A8578') + '"></span>' +
+          '<span>' + esc(nome) + '</span>' + tag + '</div>';
+        if (setup) h += '<div class="setup">🛏 ' + esc(setup) + '</div>';
+        if (rs){
+          h += '<div class="rs"><span class="hd">' + rs + 'ª notte · ospite in camera</span><ul>' +
+               '<li>Rimboccare il letto</li>' +
+               '<li>Pulire il bagno</li>' +
+               '<li>Controllare la carta igienica</li>' +
+               (r.as ? '<li class="due">🧴 Cambiare gli asciugamani</li>' : '') +
+               (r.bi ? '<li class="due">🛏️ Cambiare la biancheria del letto</li>' : '') +
+               '</ul></div>';
+        }
+      });
+      if (g.b > 0){
+        const tb = g.tb || {}, tv = tb.t || [];
+        h += '<div class="brk"><span>☕ Colazione di domani<br><span style="font-size:11.5px;opacity:.8">' +
+             g.b + (g.b === 1 ? ' persona' : ' persone') + '</span></span>' +
+             '<span class="tv">' + (tv.length
+               ? tv.map(x => '<b>' + x.u + '</b> ' + esc(x.n)).join('<br>')
+               : '—') +
+             (tb.fuori ? '<br><span style="color:#E8A9A0">' + tb.fuori + ' senza posto</span>' : '') +
+             '</span></div>';
+      }
+      if (g.su > 0){
+        const cap = g.sc || 4;
+        h += '<div class="suite">🏠 <span>Suite: colazione in camera per <b>' + g.su +
+             (g.su === 1 ? ' persona' : ' persone') + '</b>' +
+             (g.su > cap ? ' — attenzione, il tavolo è da ' + cap : '') + '</span></div>';
+      }
+      h += '</div>';
+    });
+  }
+  h += invRiga();
+  h += '<div class="leg"><h3>Cosa vuol dire</h3>' +
+    '<div class="r"><span class="k"><span class="tag cl">da pulire</span></span><span class="d">L\'ospite è partito e non arriva nessun altro. Si può fare con calma.</span></div>' +
+    '<div class="r"><span class="k"><span class="tag">⚡ pulire e preparare</span></span><span class="d">Uno parte e un altro arriva lo stesso giorno. Da fare <b>entro il primo pomeriggio</b>.</span></div>' +
+    '<div class="r"><span class="k"><span class="tag ar">da preparare</span></span><span class="d">La camera era vuota e arriva un ospite: va aperta e allestita.</span></div>' +
+    '<div class="r"><span class="k"><span class="tag rsx">♻️ riassetto</span></span><span class="d">L\'ospite è ancora in camera: letto rimboccato, bagno, carta igienica. Asciugamani e biancheria solo quando indicato.</span></div>' +
+    '<div class="r"><span class="k">🛏 <b>letto</b></span><span class="d">Serve aggiungere un letto per questo arrivo: leggi cosa c\'è scritto.</span></div>' +
+    '<div class="r"><span class="k">☕ <b>colazione</b></span><span class="d">Le persone che dormono <b>stanotte</b> e faranno colazione domani mattina, con i tavoli da apparecchiare.</span></div>' +
+    '<div class="r"><span class="k">🏠 <b>Suite</b></span><span class="d">Gli ospiti della Suite fanno colazione in camera, al loro tavolo: non occupano i tavoli comuni.</span></div>' +
+    '<div class="r"><span class="k">⏱ <b>timbra</b></span><span class="d">Tocca «Sono arrivata» quando inizi e «Ho finito» quando esci. Serve a contare le ore.</span></div>' +
+    '<div class="r"><span class="k">💶 <b>compenso</b></span><span class="d">In cima trovi quanto matura. Va a zero quando ti viene pagato, e diventa verde se hai ricevuto in anticipo.</span></div>' +
+    '<div class="r"><span class="k">📦 <b>magazzino</b></span><span class="d">Aprilo dal pulsante qui sopra e tocca il − ogni volta che prendi qualcosa. Il numero è quello che resta; ⚠️ segnala i prodotti in scadenza.</span></div>' +
+    '</div>';
+  h += '<div class="foot">';
+  if (updated){
+    const u = new Date(updated);
+    h += '<br><br>Aggiornato il ' + u.getDate() + ' ' + MESI[u.getMonth()] +
+         ' alle ' + String(u.getHours()).padStart(2,'0') + ':' + String(u.getMinutes()).padStart(2,'0');
+  }
+  h += '</div>';
+  app.innerHTML = h;
+}
+
+function fail(msg){
+  document.getElementById('app').innerHTML = '<div class="err">' + msg + '</div>';
+}
+
+let DB = null, SHARE = '';
+var NOME_DOC='';
+function nomeOp(){ return NOME_DOC || localStorage.getItem('ar_op_'+SHARE) || ''; }
+function setNome(v){ try{localStorage.setItem('ar_op_'+SHARE, v || '');}catch(e){} }
+function oraOra(){
+  const d = new Date();
+  return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+let VOCI = [];
+function oggiVoci(){
+  const t = todayISO();
+  return VOCI.filter(v => v.d === t).sort((a,b) => (a.h||'').localeCompare(b.h||''));
+}
+function statoOggi(){
+  const v = oggiVoci().filter(x => !nomeOp() || !x.w || x.w === nomeOp());
+  let dentro = false, ultimo = null;
+  v.forEach(x => { dentro = (x.t === 'in'); ultimo = x; });
+  return { dentro, ultimo, voci: v };
+}
+function durata(a, b){
+  const m = x => { const p = (x||'').split(':'); return (+p[0]||0)*60 + (+p[1]||0); };
+  let d = m(b) - m(a); if (d < 0) d += 1440;
+  return Math.floor(d/60) + 'h ' + String(d%60).padStart(2,'0') + 'm';
+}
+function renderSaldo(v){
+  const el = document.getElementById('saldo');
+  if (!el) return;
+  if (v === undefined || v === null){ el.innerHTML = ''; return; }
+  const n = Math.round(v * 100) / 100;
+  const eu = x => '€ ' + (Math.round(x*100)/100).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
+  let cls, lab, val;
+  if (n > 0.004){ cls='dare'; lab='Da ricevere'; val=eu(n); }
+  else if (n < -0.004){ cls='cred'; lab='Gi&agrave; anticipato<br><span style="font-size:11.5px;opacity:.85">verr&agrave; scalato dalle prossime</span>'; val='−' + eu(-n); }
+  else { cls='pari'; lab='Tutto saldato'; val='€ 0,00'; }
+  el.innerHTML = '<div class="sal ' + cls + '"><span class="l">' + lab + '</span><span class="v">' + val + '</span></div>';
+}
+var INV=[], PRESI={}, PLAN=[], NOTA='', AGG=0, SALDO=null;
+function invCat(){
+  var g={};
+  INV.forEach(function(it){ (g[it.c||'Altro']=g[it.c||'Altro']||[]).push(it); });
+  return g;
+}
+function scadTxt(s){
+  if(!s) return '';
+  var g=Math.round((new Date(s+'T00:00')-new Date(todayISO()+'T00:00'))/86400000);
+  if(g<0) return 'scaduto';
+  if(g<=14) return 'scade fra ' + g + (g===1?' giorno':' giorni');
+  return '';
+}
+function resid(it){ return Math.max(0,(+it.r||0)-(PRESI[it.id]||0)); }
+async function prendi(id){
+  var it=null; for(var i=0;i<INV.length;i++) if(INV[i].id===id) it=INV[i];
+  if(!it || resid(it)<=0) return;
+  PRESI[id]=(PRESI[id]||0)+1;
+  renderInv();
+  try{
+    await DB.collection('prelievi').doc(SHARE).collection('voci').add({
+      p:id, q:1, d:todayISO(), w:nomeOp()||'', ts:Date.now()
+    });
+  }catch(e){
+    PRESI[id]=Math.max(0,(PRESI[id]||1)-1); renderInv();
+    alert('Non sono riuscita a registrare il prelievo. Riprova.');
+  }
+}
+function invAvvisi(){
+  var n=0;
+  INV.forEach(function(it){
+    var sc=scadTxt(it.s);
+    if(sc || resid(it)<=0) n++;
+  });
+  return n;
+}
+function invRiga(){
+  if(!INV.length) return '';
+  var n=invAvvisi();
+  return '<button class="mrow" onclick="vai(\'inv\')"><span class="mic">📦</span>' +
+    '<span class="mtx"><b>Magazzino' + (n?'<span class="mbadge">'+n+'</span>':'') + '</b>' +
+    '<small>' + INV.length + ' prodotti' + (n?' · '+n+' da controllare':'') + '</small></span>' +
+    '<span class="mar">›</span></button>';
+}
+var VISTA='home';
+function vai(v){
+  VISTA = v || 'home';
+  try{ window.scrollTo(0,0); }catch(e){}
+  renderTutto();
+}
+function renderTutto(){
+  if (VISTA === 'inv') renderInv();
+  else { renderSaldo(SALDO); renderBadge(); render(PLAN, NOTA, AGG); }
+}
+function renderInv(){
+  var el=document.getElementById('app'); if(!el) return;
+  var s2=document.getElementById('saldo'); if(s2) s2.innerHTML='';
+  var b2=document.getElementById('badge'); if(b2) b2.style.display='none';
+  if(!INV.length){ el.innerHTML='<div class="empty">Nessun prodotto in magazzino.</div>'; return; }
+  var g=invCat(), h='<button class="back" onclick="vai(\'home\')">‹ Pulizie</button>'+
+    '<div class="inv"><h3>📦 Magazzino</h3>'+
+    '<div class="sub">Ogni volta che prendi qualcosa dal magazzino, tocca il <b>−</b>. Serve a sapere quando ricomprare.</div>';
+  var tot=0;
+  Object.keys(g).forEach(function(c){
+    h+='<div class="icat">'+esc(c)+'</div>';
+    g[c].forEach(function(it){
+      var r=resid(it), sc=scadTxt(it.s), pr=PRESI[it.id]||0;
+      tot+=pr;
+      h+='<div class="irow"><span class="nm">'+esc(it.n||'—')+
+        (sc?'<small class="warn">⚠️ '+sc+'</small>':(pr?'<small>presi oggi: '+pr+'</small>':''))+
+        '</span><span class="qt'+(r<=0?' zero':'')+'">'+r+'</span>'+
+        '<span style="font-size:11.5px;color:var(--grey);min-width:30px">'+esc(it.u||'')+'</span>'+
+        '<button class="imin" onclick="prendi(\''+it.id+'\')"'+(r<=0?' disabled':'')+'>−</button></div>';
+    });
+  });
+  if(tot) h+='<div class="itot">Hai preso <b>'+tot+'</b> '+(tot===1?'prodotto':'prodotti')+' oggi. È già segnato, non devi avvisare.</div>';
+  el.innerHTML=h+'</div>';
+}
+function renderBadge(){
+  const el = document.getElementById('badge');
+  if (!el) return;
+  el.style.display='';
+  const S = statoOggi(), nome = nomeOp();
+  let h = '<h2>' + (S.dentro ? '🟢 Sei al lavoro' : '⏱ Timbra') + '</h2>';
+  if (S.dentro){
+    h += '<div class="st">Entrata alle <b>' + esc(S.ultimo.h) + '</b>' +
+         '<br>Sono passate <b>' + durata(S.ultimo.h, oraOra()) + '</b></div>';
+    h += '<button class="bbtn out" onclick="timbra(\'out\')">Ho finito</button>';
+  } else {
+    h += '<div class="st">' + (S.voci.length
+        ? 'Ultima uscita alle <b>' + esc(S.ultimo.h) + '</b>'
+        : 'Quando arrivi, tocca il pulsante.') + '</div>';
+    h += '<button class="bbtn" onclick="timbra(\'in\')">Sono arrivata</button>';
+  }
+  if (!nome) h += '<input class="nm" id="opn" placeholder="Scrivi il tuo nome (una volta sola)" value="" oninput="setNome(this.value); if(this.value.trim().length>1) NOME_DOC=\'\';">';
+  else h += '<div style="font-size:12px;color:var(--grey);margin-top:9px">Turni di <b>' + esc(nome) + '</b></div>';
+  if (S.voci.length > 1){
+    let tot = 0, prev = null, righe = [];
+    S.voci.forEach(x => {
+      if (x.t === 'in') prev = x.h;
+      else if (prev){ righe.push(prev + ' → ' + x.h + ' · ' + durata(prev, x.h)); prev = null; }
+    });
+    if (righe.length) h += '<div class="hist">Oggi: <b>' + righe.join('</b><br><b>') + '</b></div>';
+  }
+  el.className = 'badge' + (S.dentro ? ' on' : '');
+  el.innerHTML = h;
+}
+async function timbra(tipo){
+  if (!DB || !SHARE) return;
+  const el = document.getElementById('badge');
+  const b = el.querySelector('.bbtn'); if (b) b.disabled = true;
+  try {
+    await DB.collection('timbra').doc(SHARE).collection('voci').add({
+      t: tipo, d: todayISO(), h: oraOra(), w: nomeOp() || '', ts: Date.now()
+    });
+  } catch(e){
+    alert('Non sono riuscita a registrare. Controlla la connessione e riprova.');
+    if (b) b.disabled = false;
+  }
+}
+setInterval(renderBadge, 30000);
+
+(function(){
+  const id = new URLSearchParams(location.search).get('id');
+  if (!id){
+    fail('Link incompleto.<br><br>Chiedi che ti venga rimandato il collegamento completo.');
+    return;
+  }
+  try {
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    DB = db; SHARE = id;
+    renderBadge();
+    db.collection('timbra').doc(id).collection('voci')
+      .where('d', '>=', todayISO())
+      .onSnapshot(s => { VOCI = s.docs.map(d => d.data()); renderBadge(); }, () => {});
+    db.collection('pulizie').doc(id).onSnapshot(snap => {
+      if (!snap.exists){
+        fail('Questo link non è più attivo.<br><br>Chiedi che te ne venga inviato uno nuovo.');
+        return;
+      }
+      const d = snap.data() || {};
+      if (d.nome && !NOME_DOC){ NOME_DOC = d.nome; renderBadge(); }
+      try { PLAN = JSON.parse(d.plan || '[]'); } catch(e) { PLAN = []; }
+      try { INV = JSON.parse(d.inv || '[]'); } catch(e) { INV = []; }
+      SALDO = d.saldo; NOTA = d.note || ''; AGG = d.updated || 0;
+      renderTutto();
+    }, err => {
+      fail('Non riesco a caricare il calendario.<br><br>Controlla la connessione e riprova.');
+    });
+  } catch(e){
+    fail('Non riesco a caricare il calendario.<br><br>Riprova più tardi.');
+  }
+})();
+</script>
+</body>
+</html>
