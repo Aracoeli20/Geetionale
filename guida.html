@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#203050">
+<title>Come entrare</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--dark:#203050;--ocra:#B06E27;--grano:#CD9A48;--cream:#F6F1E8;--card:#fff;
+  --ink:#26303f;--muted:#6b7585;--line:#e7ddcd;--serif:'Cormorant Garamond',Georgia,serif;--sans:'Jost',system-ui,sans-serif}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--cream);font-family:var(--sans);color:var(--ink);font-weight:300;padding-bottom:40px}
+.hero{background:var(--dark);color:#fff;padding:26px 20px 24px;text-align:center}
+.hero h1{font-family:var(--serif);font-size:30px;font-weight:600;margin:0}
+.hero .s{font-size:13px;opacity:.75;margin-top:5px}
+.wrap{max-width:620px;margin:0 auto;padding:18px 15px 0}
+.intro{font-size:14.5px;line-height:1.65;text-align:center;margin-bottom:18px}
+.b{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 17px;margin-bottom:12px}
+.b h2{font-family:var(--serif);font-size:21px;font-weight:600;color:var(--dark);margin:0 0 8px;display:flex;gap:9px;align-items:center}
+.b p{margin:0;font-size:14.5px;line-height:1.65;white-space:pre-wrap}
+.b.pilg{background:#F3EDE1;border-color:var(--grano)}
+.b.pilg h2{color:var(--ocra)}
+.b.room{border-left:4px solid var(--grano)}
+.wifi{background:var(--dark);color:#fff;border-radius:12px;padding:12px 14px;margin-top:10px;font-size:14px}
+.wifi b{font-family:ui-monospace,Menlo,monospace;font-size:16px;letter-spacing:.04em}
+.note{text-align:center;font-size:12.5px;color:var(--muted);line-height:1.65;margin-top:18px}
+.empty{text-align:center;color:var(--muted);padding:50px 20px;font-size:14.5px;line-height:1.7}
+.err{background:#F3D6D2;color:#A23B2E;border-radius:14px;padding:16px;font-size:14px;line-height:1.6;margin:16px}
+#arLang{position:fixed;top:12px;right:12px;z-index:99;display:flex;background:rgba(255,255,255,.95);
+  border:1px solid rgba(0,0,0,.1);border-radius:22px;padding:3px;box-shadow:0 2px 10px rgba(0,0,0,.14)}
+#arLang button{border:none;background:none;font-family:inherit;font-size:12px;font-weight:600;
+  padding:6px 13px;border-radius:20px;color:var(--muted);cursor:pointer}
+#arLang button.on{background:var(--dark);color:#fff}
+.sk{background:var(--card);border:1px solid var(--line);border-radius:16px;height:90px;margin-bottom:12px;animation:p 1.3s ease-in-out infinite}
+@keyframes p{0%,100%{opacity:.5}50%{opacity:.9}}
+</style>
+</head>
+<body>
+<div class="hero"><h1 id="tt">Come entrare</h1><div class="s" id="ss">Istruzioni di accesso</div></div>
+<div class="wrap" id="app"><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script>
+(function(){
+  var L = 'it';
+  var T = {
+    it:{ sub:'Istruzioni di accesso', door:'Come entrare', park:'Dove parcheggiare',
+         kit:'Cucina e spazi comuni', brk:'Colazione', bike:'La tua bici', out:'Alla partenza',
+         pilg:'Per chi cammina', wifi:'Rete WiFi', pwd:'Password',
+         room:'La tua stanza', foot:'Il codice del portone e quello della stanza li trovi nel messaggio che ti abbiamo inviato.',
+         empty:'Questa pagina non è ancora stata compilata.', gone:'Questo link non è più attivo.' },
+    en:{ sub:'Access instructions', door:'How to get in', park:'Where to park',
+         kit:'Kitchen and shared spaces', brk:'Breakfast', bike:'Your bike', out:'When you leave',
+         pilg:'For those walking', wifi:'WiFi network', pwd:'Password',
+         room:'Your room', foot:'The street door code and your room code are in the message we sent you.',
+         empty:'This page has not been filled in yet.', gone:'This link is no longer active.' }
+  };
+
+  function esc(x){ return String(x==null?'':x).replace(/[&<>"']/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+  function pick(){
+    try{
+      var p=new URLSearchParams(location.search).get('lang');
+      if(p==='en'||p==='it'){ localStorage.setItem('ar_lang',p); return p; }
+      var st=localStorage.getItem('ar_lang');
+      if(st==='en'||st==='it') return st;
+    }catch(e){}
+    var n=(navigator.language||'it').toLowerCase();
+    return n.indexOf('it')===0 ? 'it' : 'en';
+  }
+
+  function badge(){
+    var w=document.createElement('div'); w.id='arLang';
+    w.innerHTML='<button data-l="it"'+(L==='it'?' class="on"':'')+'>IT</button>'+
+                '<button data-l="en"'+(L==='en'?' class="on"':'')+'>EN</button>';
+    w.addEventListener('click',function(e){
+      var b=e.target; while(b&&b.tagName!=='BUTTON')b=b.parentNode;
+      if(!b)return;
+      var l=b.getAttribute('data-l'); if(l===L)return;
+      try{ localStorage.setItem('ar_lang',l); }catch(err){}
+      var q=new URLSearchParams(location.search); q.set('lang',l);
+      location.replace(location.pathname+'?'+q.toString());
+    });
+    document.body.appendChild(w);
+  }
+
+  function blk(ic,tit,txt,cls){
+    if(!txt) return '';
+    return '<div class="b '+(cls||'')+'"><h2><span>'+ic+'</span>'+esc(tit)+'</h2><p>'+esc(txt)+'</p></div>';
+  }
+
+  function render(d){
+    var t=T[L], q=new URLSearchParams(location.search);
+    var room=q.get('room')||'', type=(q.get('type')||'').toLowerCase();
+    document.getElementById('tt').textContent = d.t || t.door;
+    document.getElementById('ss').textContent = t.sub;
+    document.title = (d.t? d.t+' · ':'') + t.door;
+
+    var h='';
+    if(d.i) h += '<div class="intro">'+esc(d.i)+'</div>';
+    h += blk('🚪', t.door, d.p);
+
+    var st = d.st || [];
+    var mine = room ? st.filter(function(x){ return x.n===room; }) : st;
+    if(!mine.length && room) mine = st;
+    mine.forEach(function(x){ h += blk('🛏', x.n, x.a, 'room'); });
+
+    if(type.indexOf('pellegrin')===0 && d.pe) h += blk('🥾', t.pilg, d.pe, 'pilg');
+
+    h += blk('🅿️', t.park, d.pk);
+    h += blk('🍴', t.kit, d.cu);
+    h += blk('☕', t.brk, d.co);
+    h += blk('🚲', t.bike, d.bi);
+    h += blk('🧳', t.out, d.ck);
+
+    if(d.w) h += '<div class="b"><h2><span>📶</span>'+t.wifi+'</h2>'+
+      '<div class="wifi">'+t.pwd+': <b>'+esc(d.w)+'</b></div></div>';
+
+    if(!h) h = '<div class="empty">'+t.empty+'</div>';
+    h += '<div class="note">'+t.foot+'</div>';
+    document.getElementById('app').innerHTML = h;
+  }
+
+  function fail(msg){ document.getElementById('app').innerHTML='<div class="err">'+msg+'</div>'; }
+
+  L = pick();
+  if(L==='en') document.documentElement.setAttribute('lang','en');
+  badge();
+
+  var id=new URLSearchParams(location.search).get('id');
+  if(!id){ fail(T[L].gone); }
+  else if(typeof ARACOELI_CONFIG==='undefined'){ fail('config.js mancante'); }
+  else {
+    try{
+      firebase.initializeApp(ARACOELI_CONFIG);
+      firebase.firestore().collection('istruzioni').doc(id).onSnapshot(function(s){
+        if(!s.exists){ fail(T[L].gone); return; }
+        render(s.data()||{});
+      }, function(){ fail(T[L].gone); });
+    }catch(e){ fail(T[L].gone); }
+  }
+})();
+</script>
+</body>
+</html>
